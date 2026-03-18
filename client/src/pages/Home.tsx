@@ -77,21 +77,17 @@ export default function Home() {
               แพลตฟอร์มข้อมูลครบถ้วนสำหรับสิทธิประโยชน์ นวัตกรรม และการพัฒนาคุณภาพชีวิต ภายใต้ระเบียบพระราชกฤษฎีกาปี 2568
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/disability-benefits">
-                <a>
-                  <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
-                    สำหรับผู้พิการ
-                    <ArrowRight className="ml-2" size={20} />
-                  </Button>
-                </a>
+              <Link href="/disability-benefits" className="inline-block">
+                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
+                  สำหรับผู้พิการ
+                  <ArrowRight className="ml-2" size={20} />
+                </Button>
               </Link>
-              <Link href="/tax-benefits">
-                <a>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
-                    สำหรับผู้ประกอบการ
-                    <ArrowRight className="ml-2" size={20} />
-                  </Button>
-                </a>
+              <Link href="/tax-benefits" className="inline-block">
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
+                  สำหรับผู้ประกอบการ
+                  <ArrowRight className="ml-2" size={20} />
+                </Button>
               </Link>
             </div>
           </div>
@@ -130,20 +126,18 @@ export default function Home() {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Link key={index} href={feature.href}>
-                  <a>
-                    <Card className="h-full p-8 hover:shadow-xl transition cursor-pointer group">
-                      <div className={`${feature.color} w-16 h-16 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
-                        <Icon size={32} />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                      <p className="text-gray-600 mb-4">{feature.description}</p>
-                      <div className="flex items-center text-green-500 font-semibold group-hover:translate-x-2 transition">
-                        เรียนรู้เพิ่มเติม
-                        <ArrowRight className="ml-2" size={18} />
-                      </div>
-                    </Card>
-                  </a>
+                <Link key={index} href={feature.href} className="block">
+                  <Card className="h-full p-8 hover:shadow-xl transition cursor-pointer group">
+                    <div className={`${feature.color} w-16 h-16 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
+                      <Icon size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
+                    <p className="text-gray-600 mb-4">{feature.description}</p>
+                    <div className="flex items-center text-green-500 font-semibold group-hover:translate-x-2 transition">
+                      เรียนรู้เพิ่มเติม
+                      <ArrowRight className="ml-2" size={18} />
+                    </div>
+                  </Card>
                 </Link>
               );
             })}
@@ -158,13 +152,11 @@ export default function Home() {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             เข้าไปในศูนย์การเรียนรู้ของเรา เพื่อค้นหาบทความ คู่มือ และทรัพยากรที่มีประโยชน์
           </p>
-          <Link href="/learning">
-            <a>
-              <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
-                <BookOpen className="mr-2" size={20} />
-                เข้าศูนย์การเรียนรู้
-              </Button>
-            </a>
+          <Link href="/learning" className="inline-block">
+            <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
+              <BookOpen className="mr-2" size={20} />
+              เข้าศูนย์การเรียนรู้
+            </Button>
           </Link>
         </div>
       </section>
