@@ -12,6 +12,11 @@ import Innovation from "./pages/Innovation";
 import Partnership from "./pages/Partnership";
 import Dashboard from "./pages/Dashboard";
 import Learning from "./pages/Learning";
+import Register from "./pages/Register";
+import Login from "./pages/Login";
+import ApplyBenefits from "./pages/ApplyBenefits";
+import Contact from "./pages/Contact";
+import UserDashboard from "./pages/UserDashboard";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 
@@ -26,6 +31,11 @@ function Router() {
       <Route path={"/partnership"} component={Partnership} />
       <Route path={"/dashboard"} component={Dashboard} />
       <Route path={"/learning"} component={Learning} />
+      <Route path={"/register"} component={Register} />
+      <Route path={"/login"} component={Login} />
+      <Route path={"/apply-benefits"} component={ApplyBenefits} />
+      <Route path={"/contact"} component={Contact} />
+      <Route path={"/dashboard-user"} component={UserDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

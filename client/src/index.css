@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Sarabun Thai Font */
+@font-face {
+  font-family: 'Sarabun';
+  src: url('https://fonts.googleapis.com/css2?family=Sarabun:wght@100;300;400;500;600;700;800&display=swap');
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -116,9 +122,11 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-family: 'Sarabun', sans-serif;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Sarabun', sans-serif;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
