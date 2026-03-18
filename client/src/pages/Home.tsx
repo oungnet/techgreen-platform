@@ -68,7 +68,7 @@ export default function Home() {
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              TechGreen Platform 2025
+              TechGreen Platform 2026
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8">
               บูรณาการนวัตกรรมเพื่อความเท่าเทียม สนับสนุนผู้พิการ ผู้ประกอบการ และชุมชน
