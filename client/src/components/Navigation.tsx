@@ -22,22 +22,18 @@ export default function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2 font-bold text-xl hover:text-green-400 transition">
-              <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">TG</span>
-              </div>
-              <span>TechGreen 2025</span>
-            </a>
+          <Link href="/" className="flex items-center gap-2 font-bold text-xl hover:text-green-400 transition">
+            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold">TG</span>
+            </div>
+            <span>TechGreen 2025</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a className="px-3 py-2 rounded-md text-sm font-medium hover:bg-slate-700 hover:text-green-400 transition">
-                  {item.label}
-                </a>
+              <Link key={item.href} href={item.href} className="px-3 py-2 rounded-md text-sm font-medium hover:bg-slate-700 hover:text-green-400 transition">
+                {item.label}
               </Link>
             ))}
           </div>
@@ -55,13 +51,13 @@ export default function Navigation() {
         {isOpen && (
           <div className="lg:hidden pb-4 space-y-2">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a
-                  className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-slate-700 hover:text-green-400 transition"
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.label}
-                </a>
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-slate-700 hover:text-green-400 transition"
+                onClick={() => setIsOpen(false)}
+              >
+                {item.label}
               </Link>
             ))}
           </div>
