@@ -24,9 +24,9 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 font-bold text-xl hover:text-green-400 transition">
             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">TG</span>
+              <span className="text-white font-bold">NY</span>
             </div>
-            <span>TechGreen 2025</span>
+            <span>Ban Non-Yai Smarter!</span>
           </Link>
 
           {/* Desktop Navigation */}

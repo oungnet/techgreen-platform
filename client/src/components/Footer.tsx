@@ -96,8 +96,8 @@ export default function Footer() {
               <Linkedin size={20} />
             </a>
           </div>
-          <p className="text-sm text-gray-400">
-            © 2025 TechGreen Platform. สงวนลิขสิทธิ์ทั้งหมด
+          <p className="text-sm text-gray-400" style={{fontWeight: '600'}}>
+            © 2025 TechGreen Platform: <b>Power By "Sorasak"</b> สงวนลิขสิทธิ์ทั้งหมด
           </p>
         </div>
       </div>
