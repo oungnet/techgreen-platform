@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, FileText, Settings, LogOut, User, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { FileManager } from "@/components/FileManager";
 
 export default function UserDashboard() {
   const applications = [
@@ -240,31 +241,7 @@ export default function UserDashboard() {
 
                 {/* Documents Tab */}
                 <TabsContent value="documents" className="space-y-4">
-                  <Card className="p-6">
-                    <h3 className="text-lg font-bold text-slate-900 mb-4">เอกสารของฉัน</h3>
-                    <div className="space-y-3">
-                      {[
-                        { name: "ใบรับรองแพทย์", date: "2026-01-15", size: "2.5 MB" },
-                        { name: "บัตรประชาชน", date: "2025-12-20", size: "1.8 MB" },
-                        { name: "สำเนาสมุดบัญชี", date: "2025-12-15", size: "0.9 MB" },
-                      ].map((doc, idx) => (
-                        <Card key={idx} className="p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <FileText className="text-blue-600" size={24} />
-                            <div>
-                              <p className="font-bold text-slate-900">{doc.name}</p>
-                              <p className="text-xs text-gray-500">
-                                {doc.date} • {doc.size}
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant="outline" size="sm">
-                            ดาวน์โหลด
-                          </Button>
-                        </Card>
-                      ))}
-                    </div>
-                  </Card>
+                  <FileManager />
                 </TabsContent>
               </Tabs>
             </div>

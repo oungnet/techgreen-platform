@@ -19,8 +19,8 @@ import Contact from "./pages/Contact";
 import UserDashboard from "./pages/UserDashboard";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
-
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
