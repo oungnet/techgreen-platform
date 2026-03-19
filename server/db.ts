@@ -1,6 +1,6 @@
 import { eq, and, desc, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic } from "../drizzle/schema";
+import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic, userNotifications, UserNotification, InsertUserNotification, userActivity, UserActivity, InsertUserActivity, notificationPreferences, NotificationPreference, InsertNotificationPreference } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -767,6 +767,181 @@ export async function updateUserAnalytics(userId: number, updates: Partial<Inser
       .where(eq(userAnalytics.userId, userId));
   } catch (error) {
     console.error("[Database] Failed to update user analytics:", error);
+    throw error;
+  }
+}
+
+
+// ============================================
+// User Notifications Query Helpers
+// ============================================
+export async function createUserNotification(notification: InsertUserNotification): Promise<UserNotification> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const result = await db.insert(userNotifications).values(notification);
+    const created = await db.select().from(userNotifications)
+      .where(eq(userNotifications.id, (result as any).insertId));
+    return created[0];
+  } catch (error) {
+    console.error("[Database] Failed to create user notification:", error);
+    throw error;
+  }
+}
+
+export async function getUserNotifications(userId: number, limit: number = 20): Promise<UserNotification[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    return await db.select().from(userNotifications)
+      .where(eq(userNotifications.userId, userId))
+      .orderBy(desc(userNotifications.createdAt))
+      .limit(limit);
+  } catch (error) {
+    console.error("[Database] Failed to get user notifications:", error);
+    throw error;
+  }
+}
+
+export async function getUnreadNotificationCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const result = await db.select().from(userNotifications)
+      .where(and(eq(userNotifications.userId, userId), eq(userNotifications.isRead, 0)));
+    return result.length;
+  } catch (error) {
+    console.error("[Database] Failed to get unread notification count:", error);
+    throw error;
+  }
+}
+
+export async function markNotificationAsRead(notificationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.update(userNotifications)
+      .set({ isRead: 1, readAt: new Date() })
+      .where(eq(userNotifications.id, notificationId));
+  } catch (error) {
+    console.error("[Database] Failed to mark notification as read:", error);
+    throw error;
+  }
+}
+
+export async function markAllNotificationsAsRead(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.update(userNotifications)
+      .set({ isRead: 1, readAt: new Date() })
+      .where(eq(userNotifications.userId, userId));
+  } catch (error) {
+    console.error("[Database] Failed to mark all notifications as read:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserNotification(notificationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    await db.delete(userNotifications)
+      .where(eq(userNotifications.id, notificationId));
+  } catch (error) {
+    console.error("[Database] Failed to delete user notification:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// User Activity Query Helpers
+// ============================================
+export async function logUserActivity(activity: InsertUserActivity): Promise<UserActivity> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const result = await db.insert(userActivity).values(activity);
+    const created = await db.select().from(userActivity)
+      .where(eq(userActivity.id, (result as any).insertId));
+    return created[0];
+  } catch (error) {
+    console.error("[Database] Failed to log user activity:", error);
+    throw error;
+  }
+}
+
+export async function getUserActivity(userId: number, limit: number = 50): Promise<UserActivity[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    return await db.select().from(userActivity)
+      .where(eq(userActivity.userId, userId))
+      .orderBy(desc(userActivity.createdAt))
+      .limit(limit);
+  } catch (error) {
+    console.error("[Database] Failed to get user activity:", error);
+    throw error;
+  }
+}
+
+export async function getUserActivityStats(userId: number): Promise<{ views: number; comments: number; uploads: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const activities = await db.select().from(userActivity)
+      .where(eq(userActivity.userId, userId));
+    
+    const stats = {
+      views: activities.filter(a => a.activityType === 'view_article').length,
+      comments: activities.filter(a => a.activityType === 'create_comment').length,
+      uploads: activities.filter(a => a.activityType === 'upload_file').length,
+    };
+    return stats;
+  } catch (error) {
+    console.error("[Database] Failed to get user activity stats:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// Notification Preferences Query Helpers
+// ============================================
+export async function getOrCreateNotificationPreferences(userId: number): Promise<NotificationPreference> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const existing = await db.select().from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    const result = await db.insert(notificationPreferences).values({ userId });
+    const created = await db.select().from(notificationPreferences)
+      .where(eq(notificationPreferences.id, (result as any).insertId));
+    return created[0];
+  } catch (error) {
+    console.error("[Database] Failed to get or create notification preferences:", error);
+    throw error;
+  }
+}
+
+export async function updateNotificationPreferences(userId: number, preferences: Partial<InsertNotificationPreference>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  try {
+    const existing = await db.select().from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    
+    if (existing.length === 0) {
+      await db.insert(notificationPreferences).values({ userId, ...preferences });
+    } else {
+      await db.update(notificationPreferences)
+        .set(preferences)
+        .where(eq(notificationPreferences.userId, userId));
+    }
+  } catch (error) {
+    console.error("[Database] Failed to update notification preferences:", error);
     throw error;
   }
 }

@@ -225,3 +225,59 @@ export const userAnalytics = mysqlTable("userAnalytics", {
 
 export type UserAnalytic = typeof userAnalytics.$inferSelect;
 export type InsertUserAnalytic = typeof userAnalytics.$inferInsert;
+
+
+/**
+ * User notifications table for personal notifications
+ */
+export const userNotifications = mysqlTable("userNotifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 50 }).notNull(), // 'new_article', 'comment_approved', 'new_comment', 'campaign', 'system'
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  relatedId: int("relatedId"), // ID of related article, comment, etc.
+  relatedType: varchar("relatedType", { length: 50 }), // 'article', 'comment', 'campaign'
+  isRead: int("isRead").default(0).notNull(),
+  link: text("link"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  readAt: timestamp("readAt"),
+});
+
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type InsertUserNotification = typeof userNotifications.$inferInsert;
+
+/**
+ * User activity table for tracking user actions
+ */
+export const userActivity = mysqlTable("userActivity", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  activityType: varchar("activityType", { length: 50 }).notNull(), // 'view_article', 'create_comment', 'upload_file', 'rate_article'
+  relatedId: int("relatedId"), // ID of related article, comment, file, etc.
+  relatedType: varchar("relatedType", { length: 50 }).notNull(), // 'article', 'comment', 'file'
+  details: text("details"), // JSON string with additional details
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserActivity = typeof userActivity.$inferSelect;
+export type InsertUserActivity = typeof userActivity.$inferInsert;
+
+/**
+ * User notification preferences table
+ */
+export const notificationPreferences = mysqlTable("notificationPreferences", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  newArticles: int("newArticles").default(1).notNull(), // 1 = enabled, 0 = disabled
+  commentApproved: int("commentApproved").default(1).notNull(),
+  newComments: int("newComments").default(1).notNull(),
+  campaigns: int("campaigns").default(1).notNull(),
+  systemNotifications: int("systemNotifications").default(1).notNull(),
+  emailNotifications: int("emailNotifications").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;

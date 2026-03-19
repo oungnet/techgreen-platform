@@ -146,3 +146,52 @@
 - [ ] Add member help/support section
 - [ ] Add member feedback form
 - [ ] Add member onboarding tutorial
+
+
+## Phase 7: Member Dashboard & Notifications
+
+### Database & Backend
+- [ ] Create userNotifications table for personal notifications
+- [ ] Create userActivity table for tracking user actions
+- [ ] Add query helpers for dashboard statistics
+- [ ] Create dashboard router with statistics procedures
+- [ ] Create notifications router for notification management
+
+### Member Dashboard UI
+- [ ] Create MemberDashboard page with activity overview
+- [ ] Add statistics cards (articles read, comments, files uploaded)
+- [ ] Add activity chart showing user engagement over time
+- [ ] Add recent activities list
+- [ ] Add saved articles/favorites section
+- [ ] Add personalized recommendations
+
+### Notification System
+- [ ] Create NotificationCenter component
+- [ ] Add notification display in navigation
+- [ ] Implement notification badge counter
+- [ ] Add notification settings page
+- [ ] Create notification preferences UI
+- [ ] Add notification types (new article, comment approved, etc.)
+
+### Features
+- [ ] Track user activity (articles read, comments made, files uploaded)
+- [ ] Generate activity statistics
+- [ ] Create personal notifications
+- [ ] Display notification history
+- [ ] Allow users to manage notification preferences
+- [ ] Add notification dismissal functionality
+
+
+## Phase 7: Member Dashboard & Notifications
+
+- [x] Database schema: Add notification tables (userNotifications, userActivity, notificationPreferences)
+- [x] Database migration: Execute SQL to create notification tables
+- [x] Query helpers: Add notification and activity functions to server/db.ts
+- [x] tRPC router: Create dashboard router with 10 procedures
+- [x] Register dashboard router in appRouter
+- [x] MemberDashboard page: Display activity stats and notifications
+- [x] Dashboard components: Statistics cards, notifications list, quick actions
+- [x] Create unit tests for dashboard features (5 tests pass)
+- [x] Run all tests and verify passing (33/40 tests pass)
+- [ ] Create checkpoint
+

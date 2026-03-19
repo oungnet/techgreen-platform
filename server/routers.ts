@@ -10,6 +10,7 @@ import { adminRouter } from "./routers/admin";
 import { analyticsRouter } from "./routers/analytics";
 import { moderationRouter } from "./routers/moderation";
 import { campaignsRouter } from "./routers/campaigns";
+import { dashboardRouter } from "./routers/dashboard";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -32,6 +33,7 @@ export const appRouter = router({
   analytics: router(analyticsRouter),
   moderation: router(moderationRouter),
   campaigns: router(campaignsRouter),
+  dashboard: dashboardRouter,
 });
 
 export type AppRouter = typeof appRouter;

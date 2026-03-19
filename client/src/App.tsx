@@ -24,6 +24,7 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import ContentModeration from "./pages/ContentModeration";
 import EmailCampaigns from "./pages/EmailCampaigns";
 import UserManagement from "./pages/UserManagement";
+import MemberDashboard from "./pages/MemberDashboard";
 import NavigationEnhanced from "@/components/NavigationEnhanced";
 import Footer from "./components/Footer";
 function Router() {
@@ -46,11 +47,12 @@ function Router() {
       <Route path={"/profile"} component={UserProfile} />
       <Route path={"/email-preferences"} component={EmailPreferences} />
       <Route path={"/admin"} component={AdminDashboard} />
-      <Route path={"/admin/analytics"} component={AnalyticsDashboard} />
-      <Route path={"/admin/moderation"} component={ContentModeration} />
-      <Route path={"/admin/campaigns"} component={EmailCampaigns} />
-      <Route path={"/admin/users"} component={UserManagement} />
-      <Route path={"/404"} component={NotFound} />
+            <Route path="/admin/users" component={UserManagement} />
+      <Route path="/admin/moderation" component={ContentModeration} />
+      <Route path="/admin/campaigns" component={EmailCampaigns} />
+      <Route path="/admin/analytics" component={AnalyticsDashboard} />
+      <Route path="/member-dashboard" component={MemberDashboard} />
+      <Route path="/*" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
