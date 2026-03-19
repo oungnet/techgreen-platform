@@ -1,21 +1,22 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Mail, Lock, User, Phone, MapPin, FileText } from "lucide-react";
+import { Mail, Lock, User, Phone, MapPin, FileText, AlertCircle } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 
 export default function Register() {
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
-    userType: "disability",
-    fullName: "",
+    name: "",
     email: "",
     phone: "",
-    idCard: "",
     address: "",
-    password: "",
-    confirmPassword: "",
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -27,22 +28,42 @@ export default function Register() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // ตรวจสอบความถูกต้องของฟอร์ม
-    if (
-      formData.fullName &&
-      formData.email &&
-      formData.phone &&
-      formData.idCard &&
-      formData.password === formData.confirmPassword
-    ) {
+    setError("");
+
+    if (!formData.name || !formData.email || !formData.phone) {
+      setError("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    setIsLoading(true);
+    // ในการใช้งานจริง จะเชื่อมต่อกับ backend API
+    // ตอนนี้ใช้ Manus OAuth เพื่อสมัครสมาชิก
+    setTimeout(() => {
       setSubmitted(true);
       setTimeout(() => {
-        window.location.href = "/login";
+        window.location.href = getLoginUrl();
       }, 2000);
-    } else {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วนและตรวจสอบรหัสผ่าน");
-    }
+    }, 1000);
   };
+
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto">
+            <Card className="p-8 text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h1 className="text-3xl font-bold text-green-600 mb-2">คุณได้ลงทะเบียนแล้ว!</h1>
+              <p className="text-gray-600 mb-6">ยินดีต้อนรับเข้าสู่ TechGreen Platform</p>
+              <Button className="bg-green-500 hover:bg-green-600" onClick={() => window.location.href = "/"}>
+                กลับไปหน้าแรก
+              </Button>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 py-12">
@@ -62,21 +83,12 @@ export default function Register() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* User Type */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">ประเภทผู้ใช้</label>
-                  <select
-                    name="userType"
-                    value={formData.userType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="disability">ผู้พิการ</option>
-                    <option value="entrepreneur">ผู้ประกอบการ</option>
-                    <option value="government">เจ้าหน้าที่ภาครัฐ</option>
-                    <option value="other">อื่นๆ</option>
-                  </select>
-                </div>
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
 
                 {/* Full Name */}
                 <div>
@@ -85,11 +97,11 @@ export default function Register() {
                     <User className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
                       type="text"
-                      name="fullName"
-                      value={formData.fullName}
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
                       placeholder="กรุณากรอกชื่อ-นามสกุล"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       required
                     />
                   </div>
@@ -106,7 +118,7 @@ export default function Register() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="example@email.com"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       required
                     />
                   </div>
@@ -123,24 +135,7 @@ export default function Register() {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="08X-XXX-XXXX"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* ID Card */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">เลขบัตรประชาชน</label>
-                  <div className="relative">
-                    <FileText className="absolute left-3 top-3 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      name="idCard"
-                      value={formData.idCard}
-                      onChange={handleChange}
-                      placeholder="X-XXXX-XXXXX-XX-X"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                       required
                     />
                   </div>
@@ -157,42 +152,7 @@ export default function Register() {
                       onChange={handleChange}
                       placeholder="กรุณากรอกที่อยู่"
                       rows={3}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">รหัสผ่าน</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="กรุณากรอกรหัสผ่าน"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Confirm Password */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">ยืนยันรหัสผ่าน</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="กรุณายืนยันรหัสผ่าน"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                 </div>
@@ -206,21 +166,42 @@ export default function Register() {
                     required
                   />
                   <label htmlFor="terms" className="text-sm text-gray-600">
-                    ฉันยอมรับ <a href="#" className="text-blue-600 hover:underline">เงื่อนไขการใช้บริการ</a> และ{" "}
-                    <a href="#" className="text-blue-600 hover:underline">นโยบายความเป็นส่วนตัว</a>
+                    ฉันยอมรับ <a href="#" className="text-green-600 hover:underline">เงื่อนไขการใช้บริการ</a> และ{" "}
+                    <a href="#" className="text-green-600 hover:underline">นโยบายความเป็นส่วนตัว</a>
                   </label>
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 font-bold">
-                  สร้างบัญชี
+                <Button 
+                  type="submit" 
+                  disabled={isLoading}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 font-bold"
+                >
+                  {isLoading ? "กำลังสมัครสมาชิก..." : "สร้างบัญชี"}
                 </Button>
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-600">หรือ</span>
+                  </div>
+                </div>
+
+                {/* OAuth Login */}
+                <a href={getLoginUrl()}>
+                  <Button variant="outline" className="w-full">
+                    <span className="mr-2">🔐</span> เข้าสู่ระบบด้วย Manus
+                  </Button>
+                </a>
 
                 {/* Login Link */}
                 <div className="text-center">
                   <p className="text-gray-600">
                     มีบัญชีอยู่แล้ว?{" "}
-                    <a href="/login" className="text-blue-600 hover:underline font-bold">
+                    <a href={getLoginUrl()} className="text-green-600 hover:underline font-bold">
                       เข้าสู่ระบบ
                     </a>
                   </p>
