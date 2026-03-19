@@ -82,13 +82,13 @@ export default function Home() {
               แพลตฟอร์มข้อมูลครบถ้วนสำหรับสิทธิประโยชน์ นวัตกรรม และการพัฒนาคุณภาพชีวิต ภายใต้ระเบียบพระราชกฤษฎีกาปี 2568
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/disability-benefits" className="inline-block">
+              <Link href="/disability-benefits">
                 <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
                   สำหรับผู้พิการ
                   <ArrowRight className="ml-2" size={20} />
                 </Button>
               </Link>
-              <Link href="/tax-benefits" className="inline-block">
+              <Link href="/tax-benefits">
                 <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
                   สำหรับผู้ประกอบการ
                   <ArrowRight className="ml-2" size={20} />
@@ -157,7 +157,7 @@ export default function Home() {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             เข้าไปในศูนย์การเรียนรู้ของเรา เพื่อค้นหาบทความ คู่มือ และทรัพยากรที่มีประโยชน์
           </p>
-          <Link href="/learning" className="inline-block">
+          <Link href="/learning">
             <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
               <BookOpen className="mr-2" size={20} />
               เข้าศูนย์การเรียนรู้

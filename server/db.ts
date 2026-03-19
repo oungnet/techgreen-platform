@@ -1,6 +1,6 @@
 import { eq, and, desc, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification } from "../drizzle/schema";
+import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -514,6 +514,259 @@ export async function updateEmailNotificationStatus(notificationId: number, sent
       .where(eq(emailNotifications.id, notificationId));
   } catch (error) {
     console.error("[Database] Failed to update email notification:", error);
+    throw error;
+  }
+}
+
+
+// ============================================
+// Analytics Query Helpers
+// ============================================
+
+export async function getArticleStats(): Promise<{ total: number; published: number; totalViews: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.select().from(articles);
+    const published = result.filter(a => a.published === 1).length;
+    const totalViews = result.reduce((sum, a) => sum + (a.viewCount || 0), 0);
+    return { total: result.length, published, totalViews };
+  } catch (error) {
+    console.error("[Database] Failed to get article stats:", error);
+    throw error;
+  }
+}
+
+export async function getCommentStats(): Promise<{ total: number; approved: number; pending: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.select().from(comments);
+    const approved = result.filter(c => c.approved === 1).length;
+    const pending = result.filter(c => c.approved === 0).length;
+    return { total: result.length, approved, pending };
+  } catch (error) {
+    console.error("[Database] Failed to get comment stats:", error);
+    throw error;
+  }
+}
+
+export async function getUserStats(): Promise<{ total: number; admins: number; users: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.select().from(users);
+    const admins = result.filter(u => u.role === 'admin').length;
+    const userCount = result.filter(u => u.role === 'user').length;
+    return { total: result.length, admins, users: userCount };
+  } catch (error) {
+    console.error("[Database] Failed to get user stats:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// User Management Query Helpers
+// ============================================
+
+export async function updateUserRole(userId: number, role: 'admin' | 'user'): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    await db.update(users).set({ role }).where(eq(users.id, userId));
+  } catch (error) {
+    console.error("[Database] Failed to update user role:", error);
+    throw error;
+  }
+}
+
+export async function deactivateUser(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    // Mark user as inactive by setting a flag or deleting related data
+    // For now, we'll just update the user record
+    await db.update(users).set({ updatedAt: new Date() }).where(eq(users.id, userId));
+  } catch (error) {
+    console.error("[Database] Failed to deactivate user:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// Content Moderation Query Helpers
+// ============================================
+
+export async function flagComment(commentId: number, reason: string, flaggedBy: number): Promise<ContentModeration> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.insert(contentModerations).values({
+      commentId,
+      reason,
+      flaggedBy,
+      status: 'pending',
+    });
+
+    const moderation = await db.select().from(contentModerations)
+      .where(eq(contentModerations.id, (result as any).insertId));
+    return moderation[0];
+  } catch (error) {
+    console.error("[Database] Failed to flag comment:", error);
+    throw error;
+  }
+}
+
+export async function getModerationQueue(): Promise<ContentModeration[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    return await db.select().from(contentModerations)
+      .where(eq(contentModerations.status, 'pending'));
+  } catch (error) {
+    console.error("[Database] Failed to get moderation queue:", error);
+    throw error;
+  }
+}
+
+export async function approveModerationItem(moderationId: number, moderatedBy: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    await db.update(contentModerations)
+      .set({ status: 'approved', moderatedBy, moderatedAt: new Date() })
+      .where(eq(contentModerations.id, moderationId));
+  } catch (error) {
+    console.error("[Database] Failed to approve moderation:", error);
+    throw error;
+  }
+}
+
+export async function rejectModerationItem(moderationId: number, moderatedBy: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    await db.update(contentModerations)
+      .set({ status: 'rejected', moderatedBy, moderatedAt: new Date() })
+      .where(eq(contentModerations.id, moderationId));
+  } catch (error) {
+    console.error("[Database] Failed to reject moderation:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// Email Campaign Query Helpers
+// ============================================
+
+export async function createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.insert(emailCampaigns).values(campaign);
+    const created = await db.select().from(emailCampaigns)
+      .where(eq(emailCampaigns.id, (result as any).insertId));
+    return created[0];
+  } catch (error) {
+    console.error("[Database] Failed to create email campaign:", error);
+    throw error;
+  }
+}
+
+export async function getCampaigns(): Promise<EmailCampaign[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    return await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get campaigns:", error);
+    throw error;
+  }
+}
+
+export async function updateCampaignStatus(campaignId: number, status: 'draft' | 'scheduled' | 'sent' | 'failed'): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const updateData: any = { status };
+    if (status === 'sent') {
+      updateData.sentAt = new Date();
+    }
+    await db.update(emailCampaigns).set(updateData).where(eq(emailCampaigns.id, campaignId));
+  } catch (error) {
+    console.error("[Database] Failed to update campaign status:", error);
+    throw error;
+  }
+}
+
+export async function addCampaignRecipient(campaignId: number, userId: number): Promise<CampaignRecipient> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const result = await db.insert(campaignRecipients).values({
+      campaignId,
+      userId,
+    });
+
+    const recipient = await db.select().from(campaignRecipients)
+      .where(eq(campaignRecipients.id, (result as any).insertId));
+    return recipient[0];
+  } catch (error) {
+    console.error("[Database] Failed to add campaign recipient:", error);
+    throw error;
+  }
+}
+
+// ============================================
+// User Analytics Query Helpers
+// ============================================
+
+export async function getOrCreateUserAnalytics(userId: number): Promise<UserAnalytic> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const existing = await db.select().from(userAnalytics)
+      .where(eq(userAnalytics.userId, userId));
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    const result = await db.insert(userAnalytics).values({ userId });
+    const created = await db.select().from(userAnalytics)
+      .where(eq(userAnalytics.id, (result as any).insertId));
+    return created[0];
+  } catch (error) {
+    console.error("[Database] Failed to get or create user analytics:", error);
+    throw error;
+  }
+}
+
+export async function updateUserAnalytics(userId: number, updates: Partial<InsertUserAnalytic>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  try {
+    const updateData: any = { ...updates, lastActivityAt: new Date() };
+    await db.update(userAnalytics)
+      .set(updateData)
+      .where(eq(userAnalytics.userId, userId));
+  } catch (error) {
+    console.error("[Database] Failed to update user analytics:", error);
     throw error;
   }
 }

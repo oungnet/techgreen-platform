@@ -150,3 +150,78 @@ export const emailNotifications = mysqlTable("emailNotifications", {
 
 export type EmailNotification = typeof emailNotifications.$inferSelect;
 export type InsertEmailNotification = typeof emailNotifications.$inferInsert;
+
+/**
+ * Content moderation table for flagged comments
+ */
+export const contentModerations = mysqlTable("contentModerations", {
+  id: int("id").autoincrement().primaryKey(),
+  commentId: int("commentId").notNull(),
+  reason: varchar("reason", { length: 255 }).notNull(),
+  flaggedBy: int("flaggedBy").notNull(),
+  status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+  moderatedBy: int("moderatedBy"),
+  moderatedAt: timestamp("moderatedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ContentModeration = typeof contentModerations.$inferSelect;
+export type InsertContentModeration = typeof contentModerations.$inferInsert;
+
+/**
+ * Email campaigns table for campaign management
+ */
+export const emailCampaigns = mysqlTable("emailCampaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  createdBy: int("createdBy").notNull(),
+  status: mysqlEnum("status", ["draft", "scheduled", "sent", "failed"]).default("draft").notNull(),
+  scheduledAt: timestamp("scheduledAt"),
+  sentAt: timestamp("sentAt"),
+  recipientCount: int("recipientCount").default(0).notNull(),
+  openCount: int("openCount").default(0).notNull(),
+  clickCount: int("clickCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+export type InsertEmailCampaign = typeof emailCampaigns.$inferInsert;
+
+/**
+ * Campaign recipients table for tracking sent emails
+ */
+export const campaignRecipients = mysqlTable("campaignRecipients", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  userId: int("userId").notNull(),
+  sent: int("sent").default(0).notNull(),
+  opened: int("opened").default(0).notNull(),
+  clicked: int("clicked").default(0).notNull(),
+  sentAt: timestamp("sentAt"),
+  openedAt: timestamp("openedAt"),
+  clickedAt: timestamp("clickedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CampaignRecipient = typeof campaignRecipients.$inferSelect;
+export type InsertCampaignRecipient = typeof campaignRecipients.$inferInsert;
+
+/**
+ * User analytics table for tracking user behavior
+ */
+export const userAnalytics = mysqlTable("userAnalytics", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  articlesViewed: int("articlesViewed").default(0).notNull(),
+  commentsCreated: int("commentsCreated").default(0).notNull(),
+  ratingsGiven: int("ratingsGiven").default(0).notNull(),
+  lastActivityAt: timestamp("lastActivityAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserAnalytic = typeof userAnalytics.$inferSelect;
+export type InsertUserAnalytic = typeof userAnalytics.$inferInsert;
