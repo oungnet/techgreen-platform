@@ -1,6 +1,6 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, like } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare } from "../drizzle/schema";
+import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -253,6 +253,267 @@ export async function deleteFileShare(shareId: number, userId: number): Promise<
     return true;
   } catch (error) {
     console.error("[Database] Failed to delete file share:", error);
+    throw error;
+  }
+}
+
+// Article Management Queries
+
+export async function createArticle(article: InsertArticle): Promise<Article | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create article: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(articles).values(article);
+    const result = await db.select().from(articles).where(eq(articles.slug, article.slug)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create article:", error);
+    throw error;
+  }
+}
+
+export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get article: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get article:", error);
+    throw error;
+  }
+}
+
+export async function getPublishedArticles(limit: number = 10, offset: number = 0): Promise<Article[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get articles: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(articles)
+      .where(eq(articles.published, 1))
+      .orderBy(desc(articles.createdAt))
+      .limit(limit)
+      .offset(offset);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get articles:", error);
+    throw error;
+  }
+}
+
+export async function searchArticles(query: string, limit: number = 10): Promise<Article[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot search articles: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(articles)
+      .where(and(
+        eq(articles.published, 1),
+        like(articles.title, `%${query}%`)
+      ))
+      .limit(limit);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to search articles:", error);
+    throw error;
+  }
+}
+
+// Comment Management Queries
+
+export async function createComment(comment: InsertComment): Promise<Comment | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create comment: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(comments).values(comment);
+    const result = await db.select().from(comments)
+      .where(and(eq(comments.articleId, comment.articleId), eq(comments.userId, comment.userId)))
+      .orderBy(desc(comments.createdAt))
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create comment:", error);
+    throw error;
+  }
+}
+
+export async function getArticleComments(articleId: number): Promise<Comment[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get comments: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(comments)
+      .where(and(eq(comments.articleId, articleId), eq(comments.approved, 1)))
+      .orderBy(desc(comments.createdAt));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get comments:", error);
+    throw error;
+  }
+}
+
+// Rating Management Queries
+
+export async function createOrUpdateRating(rating: InsertRating): Promise<Rating | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create rating: database not available");
+    return undefined;
+  }
+
+  try {
+    const existing = await db.select().from(ratings)
+      .where(and(eq(ratings.articleId, rating.articleId), eq(ratings.userId, rating.userId)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db.update(ratings).set({ score: rating.score }).where(eq(ratings.id, existing[0].id));
+      return await db.select().from(ratings).where(eq(ratings.id, existing[0].id)).limit(1).then(r => r[0]);
+    } else {
+      await db.insert(ratings).values(rating);
+      const result = await db.select().from(ratings)
+        .where(and(eq(ratings.articleId, rating.articleId), eq(ratings.userId, rating.userId)))
+        .limit(1);
+      return result.length > 0 ? result[0] : undefined;
+    }
+  } catch (error) {
+    console.error("[Database] Failed to create/update rating:", error);
+    throw error;
+  }
+}
+
+export async function getArticleRating(articleId: number): Promise<{ average: number; count: number }> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get rating: database not available");
+    return { average: 0, count: 0 };
+  }
+
+  try {
+    const result = await db.select().from(ratings).where(eq(ratings.articleId, articleId));
+    if (result.length === 0) return { average: 0, count: 0 };
+    const average = result.reduce((sum, r) => sum + r.score, 0) / result.length;
+    return { average, count: result.length };
+  } catch (error) {
+    console.error("[Database] Failed to get rating:", error);
+    throw error;
+  }
+}
+
+// Email Subscription Queries
+
+export async function getOrCreateEmailSubscription(userId: number): Promise<EmailSubscription | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get email subscription: database not available");
+    return undefined;
+  }
+
+  try {
+    const existing = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
+    if (existing.length > 0) return existing[0];
+
+    const newSub: InsertEmailSubscription = { userId, subscribeToNewArticles: 1, subscribeToUpdates: 1, subscribeToPolicy: 1 };
+    await db.insert(emailSubscriptions).values(newSub);
+    const result = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get/create email subscription:", error);
+    throw error;
+  }
+}
+
+export async function updateEmailSubscription(userId: number, updates: Partial<EmailSubscription>): Promise<EmailSubscription | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update email subscription: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.update(emailSubscriptions).set(updates).where(eq(emailSubscriptions.userId, userId));
+    const result = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to update email subscription:", error);
+    throw error;
+  }
+}
+
+// Email Notification Queries
+
+export async function createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification | undefined> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create email notification: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(emailNotifications).values(notification);
+    const result = await db.select().from(emailNotifications)
+      .where(eq(emailNotifications.userId, notification.userId))
+      .orderBy(desc(emailNotifications.createdAt))
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create email notification:", error);
+    throw error;
+  }
+}
+
+export async function getUserEmailNotifications(userId: number): Promise<EmailNotification[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get email notifications: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db.select().from(emailNotifications)
+      .where(eq(emailNotifications.userId, userId))
+      .orderBy(desc(emailNotifications.createdAt));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get email notifications:", error);
+    throw error;
+  }
+}
+
+export async function updateEmailNotificationStatus(notificationId: number, sent: boolean): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update email notification: database not available");
+    return;
+  }
+
+  try {
+    await db.update(emailNotifications)
+      .set({ sent: sent ? 1 : 0, sentAt: sent ? new Date() : null })
+      .where(eq(emailNotifications.id, notificationId));
+  } catch (error) {
+    console.error("[Database] Failed to update email notification:", error);
     throw error;
   }
 }

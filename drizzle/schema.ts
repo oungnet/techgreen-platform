@@ -17,6 +17,10 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  bio: text("bio"),
+  avatar: text("avatar"),
+  phone: varchar("phone", { length: 20 }),
+  address: text("address"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -61,3 +65,88 @@ export const fileShares = mysqlTable("fileShares", {
 
 export type FileShare = typeof fileShares.$inferSelect;
 export type InsertFileShare = typeof fileShares.$inferInsert;
+
+/**
+ * Articles table for Learning content
+ */
+export const articles = mysqlTable("articles", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  content: text("content").notNull(),
+  excerpt: text("excerpt"),
+  category: varchar("category", { length: 100 }).notNull(),
+  authorId: int("authorId").notNull(),
+  coverImage: text("coverImage"),
+  viewCount: int("viewCount").default(0).notNull(),
+  published: int("published").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Article = typeof articles.$inferSelect;
+export type InsertArticle = typeof articles.$inferInsert;
+
+/**
+ * Comments table for article comments
+ */
+export const comments = mysqlTable("comments", {
+  id: int("id").autoincrement().primaryKey(),
+  articleId: int("articleId").notNull(),
+  userId: int("userId").notNull(),
+  content: text("content").notNull(),
+  approved: int("approved").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Comment = typeof comments.$inferSelect;
+export type InsertComment = typeof comments.$inferInsert;
+
+/**
+ * Ratings table for article ratings
+ */
+export const ratings = mysqlTable("ratings", {
+  id: int("id").autoincrement().primaryKey(),
+  articleId: int("articleId").notNull(),
+  userId: int("userId").notNull(),
+  score: int("score").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Rating = typeof ratings.$inferSelect;
+export type InsertRating = typeof ratings.$inferInsert;
+
+/**
+ * Email subscriptions table for newsletter and notifications
+ */
+export const emailSubscriptions = mysqlTable("emailSubscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  subscribeToNewArticles: int("subscribeToNewArticles").default(1).notNull(),
+  subscribeToUpdates: int("subscribeToUpdates").default(1).notNull(),
+  subscribeToPolicy: int("subscribeToPolicy").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmailSubscription = typeof emailSubscriptions.$inferSelect;
+export type InsertEmailSubscription = typeof emailSubscriptions.$inferInsert;
+
+/**
+ * Email notifications table for tracking sent emails
+ */
+export const emailNotifications = mysqlTable("emailNotifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: varchar("type", { length: 50 }).notNull(),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  sent: int("sent").default(0).notNull(),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type EmailNotification = typeof emailNotifications.$inferSelect;
+export type InsertEmailNotification = typeof emailNotifications.$inferInsert;
