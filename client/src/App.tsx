@@ -21,6 +21,9 @@ import UserProfile from "./pages/UserProfile";
 import EmailPreferences from "./pages/EmailPreferences";
 import AdminDashboard from "./pages/AdminDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import ContentModeration from "./pages/ContentModeration";
+import EmailCampaigns from "./pages/EmailCampaigns";
+import UserManagement from "./pages/UserManagement";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 function Router() {
@@ -44,6 +47,9 @@ function Router() {
       <Route path={"/email-preferences"} component={EmailPreferences} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/admin/analytics"} component={AnalyticsDashboard} />
+      <Route path={"/admin/moderation"} component={ContentModeration} />
+      <Route path={"/admin/campaigns"} component={EmailCampaigns} />
+      <Route path={"/admin/users"} component={UserManagement} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

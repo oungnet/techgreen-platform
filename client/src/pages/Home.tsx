@@ -2,11 +2,9 @@ import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Users, TrendingUp, Leaf, Briefcase, BookOpen, BarChart3 } from "lucide-react";
+import { ArrowRight, Users, TrendingUp, Leaf, Briefcase, BookOpen, BarChart3, CheckCircle, Zap, Globe } from "lucide-react";
 
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
   let { user, loading, error, isAuthenticated, logout } = useAuth();
 
   const features = [
@@ -61,10 +59,16 @@ export default function Home() {
     { label: "ที่ดินราชพัสดุ", value: "12,450 ไร่", icon: Leaf },
   ];
 
+  const benefits = [
+    { icon: Zap, title: "ข้อมูลครบถ้วน", description: "ศูนย์รวมข้อมูลสิทธิประโยชน์ทั้งหมดในที่เดียว" },
+    { icon: CheckCircle, title: "ตรวจสอบสิทธิ์ง่าย", description: "ระบบตรวจสอบสิทธิ์ที่ทำให้เข้าใจง่าย" },
+    { icon: Globe, title: "เข้าถึงได้ทุกที่", description: "ใช้งานได้ผ่านเว็บและแอปพลิเคชัน" },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-20 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white py-24 overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-96 h-96 bg-green-500 rounded-full mix-blend-multiply filter blur-3xl"></div>
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl"></div>
@@ -78,7 +82,7 @@ export default function Home() {
             <p className="text-xl md:text-2xl text-gray-300 mb-8">
               นวัตกรรมเพื่อความเท่าเทียม สนับสนุนผู้พิการ ผู้ประกอบการ และ ชุมชน
             </p>
-            <p className="text-lg text-gray-400 mb-8">
+            <p className="text-lg text-gray-400 mb-12">
               แพลตฟอร์มข้อมูลครบถ้วนสำหรับสิทธิประโยชน์ นวัตกรรม และการพัฒนาคุณภาพชีวิต ภายใต้ระเบียบพระราชกฤษฎีกาปี 2568
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -99,9 +103,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Benefits Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">ทำไมต้องใช้ TechGreen?</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => {
+              const Icon = benefit.icon;
+              return (
+                <Card key={index} className="p-8 text-center hover:shadow-lg transition">
+                  <Icon className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                  <h3 className="text-xl font-bold mb-2">{benefit.title}</h3>
+                  <p className="text-gray-600">{benefit.description}</p>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">สถิติและข้อมูล</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
@@ -118,7 +142,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20">
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-slate-900 mb-4">เนื้อหาหลักของแพลตฟอร์ม</h2>
@@ -131,7 +155,7 @@ export default function Home() {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Link key={index} href={feature.href} className="block">
+                <Link key={index} href={feature.href}>
                   <Card className="h-full p-8 hover:shadow-xl transition cursor-pointer group">
                     <div className={`${feature.color} w-16 h-16 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition`}>
                       <Icon size={32} />
