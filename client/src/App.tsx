@@ -24,7 +24,7 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import ContentModeration from "./pages/ContentModeration";
 import EmailCampaigns from "./pages/EmailCampaigns";
 import UserManagement from "./pages/UserManagement";
-import Navigation from "./components/Navigation";
+import NavigationEnhanced from "@/components/NavigationEnhanced";
 import Footer from "./components/Footer";
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -64,7 +64,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <div className="flex flex-col min-h-screen">
-            <Navigation />
+            <NavigationEnhanced />
             <main className="flex-1">
               <Router />
             </main>

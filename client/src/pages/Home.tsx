@@ -86,18 +86,14 @@ export default function Home() {
               แพลตฟอร์มข้อมูลครบถ้วนสำหรับสิทธิประโยชน์ นวัตกรรม และการพัฒนาคุณภาพชีวิต ภายใต้ระเบียบพระราชกฤษฎีกาปี 2568
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/disability-benefits">
-                <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white">
-                  สำหรับผู้พิการ
-                  <ArrowRight className="ml-2" size={20} />
-                </Button>
-              </Link>
-              <Link href="/tax-benefits">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900">
-                  สำหรับผู้ประกอบการ
-                  <ArrowRight className="ml-2" size={20} />
-                </Button>
-              </Link>
+              <Button size="lg" className="bg-green-500 hover:bg-green-600 text-white" onClick={() => window.location.href = '/disability-benefits'}>
+                สำหรับผู้พิการ
+                <ArrowRight className="ml-2" size={20} />
+              </Button>
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-slate-900" onClick={() => window.location.href = '/tax-benefits'}>
+                สำหรับผู้ประกอบการ
+                <ArrowRight className="ml-2" size={20} />
+              </Button>
             </div>
           </div>
         </div>
