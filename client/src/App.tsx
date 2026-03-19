@@ -19,6 +19,7 @@ import Contact from "./pages/Contact";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
 import EmailPreferences from "./pages/EmailPreferences";
+import AdminDashboard from "./pages/AdminDashboard";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 function Router() {
@@ -40,6 +41,7 @@ function Router() {
       <Route path={"/dashboard-user"} component={UserDashboard} />
       <Route path={"/profile"} component={UserProfile} />
       <Route path={"/email-preferences"} component={EmailPreferences} />
+      <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
