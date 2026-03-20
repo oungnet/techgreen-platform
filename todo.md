@@ -195,3 +195,28 @@
 - [x] Run all tests and verify passing (33/40 tests pass)
 - [ ] Create checkpoint
 
+
+
+## Phase 8: Content Management & Analytics Dashboard
+
+### Content Management System
+- [ ] Backend: Extend article router with publish/unpublish procedures
+- [ ] Backend: Create email notification procedures for article updates
+- [ ] ContentManagement page: Article list with CRUD operations
+- [ ] ContentManagement page: Article editor with rich text support
+- [ ] ContentManagement page: Bulk actions (publish, unpublish, delete)
+- [ ] Email Notification: Setup email service integration
+- [ ] Email Notification: Send emails on article publish/update
+
+### Member Analytics Dashboard
+- [ ] Backend: Create analytics procedures for member statistics
+- [ ] MemberAnalytics page: Member statistics (total, active, new this month)
+- [ ] MemberAnalytics page: Article engagement charts (views, comments, ratings)
+- [ ] MemberAnalytics page: User activity timeline and trends
+- [ ] MemberAnalytics page: Category performance analysis
+- [ ] MemberAnalytics page: Export reports functionality
+
+### Testing & Deployment
+- [ ] Create unit tests for content management and analytics
+- [ ] Run all tests and verify passing
+- [ ] Create checkpoint
