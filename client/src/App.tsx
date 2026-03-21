@@ -27,6 +27,7 @@ import UserManagement from "./pages/UserManagement";
 import MemberDashboard from "./pages/MemberDashboard";
 import ContentManagement from "./pages/ContentManagement";
 import MemberAnalytics from "./pages/MemberAnalytics";
+import ArticleManagement from "./pages/ArticleManagement";
 import NavigationEnhanced from "@/components/NavigationEnhanced";
 import Footer from "./components/Footer";
 
@@ -54,11 +55,10 @@ function Router() {
       <Route path="/admin/moderation" component={ContentModeration} />
       <Route path="/admin/campaigns" component={EmailCampaigns} />
       <Route path="/admin/analytics" component={AnalyticsDashboard} />
-      <Route path="/admin/content" component={ContentManagement} />
-      <Route path="/analytics" component={MemberAnalytics} />
+      <Route path="/admin/content" component={ContentManagement} />      <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/member-dashboard" component={MemberDashboard} />
-      <Route path="/*" component={NotFound} />
-    </Switch>
+      <Route path="/admin/articles" component={ArticleManagement} />
+      <Route path="/*" component={NotFound} />   </Switch>
   );
 }
 
