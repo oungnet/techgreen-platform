@@ -402,3 +402,49 @@
 - [ ] Test filter functionality
 - [ ] Test sort functionality
 - [ ] Run full test suite
+
+
+## Phase 12: Homepage Menu Structure Improvement - IN PROGRESS
+
+### Main Navigation Menu
+- [ ] Analyze current Navigation component
+- [ ] Create enhanced main navigation with better structure
+- [ ] Add main menu items (หน้าแรก, สิทธิประโยชน์, นวัตกรรม, ทรัพยากร, เกี่ยวกับเรา, ติดต่อ)
+- [ ] Improve menu styling and responsiveness
+- [ ] Add active menu item indicator
+- [ ] Add mobile hamburger menu
+
+### Category Menu with Subcategories
+- [ ] Create category dropdown menu
+- [ ] Add subcategories for each main category
+- [ ] Implement hover effects for desktop
+- [ ] Implement click effects for mobile
+- [ ] Add category icons
+
+### Quick Links Section
+- [ ] Create quick links component
+- [ ] Add popular links (สมัครสมาชิก, ดาวน์โหลด, ติดต่อ, FAQ)
+- [ ] Add quick action buttons
+- [ ] Position quick links prominently
+
+### CTA Buttons Visibility
+- [ ] Improve CTA button styling
+- [ ] Add button animations
+- [ ] Increase button visibility
+- [ ] Add button icons
+- [ ] Test button click-through rates
+
+### Breadcrumb Navigation
+- [ ] Create Breadcrumb component
+- [ ] Implement breadcrumb logic
+- [ ] Add breadcrumb styling
+- [ ] Test breadcrumb on all pages
+- [ ] Add breadcrumb schema for SEO
+
+### Testing
+- [ ] Test navigation on desktop
+- [ ] Test navigation on mobile
+- [ ] Test all menu items work correctly
+- [ ] Test breadcrumb navigation
+- [ ] Verify CTA button visibility
+- [ ] Run full test suite

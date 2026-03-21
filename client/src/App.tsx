@@ -29,6 +29,7 @@ import ContentManagement from "./pages/ContentManagement";
 import MemberAnalytics from "./pages/MemberAnalytics";
 import ArticleManagement from "./pages/ArticleManagement";
 import NavigationEnhanced from "@/components/NavigationEnhanced";
+import Breadcrumb from "@/components/Breadcrumb";
 import Footer from "./components/Footer";
 
 function Router() {
@@ -70,6 +71,7 @@ function App() {
           <Toaster />
           <div className="flex flex-col min-h-screen">
             <NavigationEnhanced />
+            <Breadcrumb />
             <main className="flex-1">
               <Router />
             </main>
