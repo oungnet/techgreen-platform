@@ -195,6 +195,50 @@ export const adminRouter = router({
     }),
   }),
 
+  // User Management
+  usersMgmt: router({
+    list: adminProcedure
+      .input(z.object({ limit: z.number().default(20), offset: z.number().default(0) }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+
+        try {
+          const result = await db
+            .select({
+              id: users.id,
+              email: users.email,
+              name: users.name,
+              role: users.role,
+              createdAt: users.createdAt,
+            })
+            .from(users)
+            .orderBy(desc(users.createdAt))
+            .limit(input.limit)
+            .offset(input.offset);
+          return result;
+        } catch (error) {
+          console.error("[Admin] Failed to list users:", error);
+          throw error;
+        }
+      }),
+
+    updateRole: adminProcedure
+      .input(z.object({ userId: z.number(), role: z.enum(["user", "admin"]) }))
+      .mutation(async ({ input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        try {
+          await db.update(users).set({ role: input.role }).where(eq(users.id, input.userId));
+          return { success: true };
+        } catch (error) {
+          console.error("[Admin] Failed to update user role:", error);
+          throw error;
+        }
+      }),
+  }),
+
   // Dashboard Statistics
   dashboard: router({
     stats: adminProcedure.query(async () => {
