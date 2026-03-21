@@ -328,3 +328,33 @@
 - [x] Create checkpoint - READY
 - [x] Verify deployment - READY
 - [x] Test on live domain - READY
+
+
+## Phase 10: User Profile Page with Activity - COMPLETED
+
+### tRPC Procedures
+- [x] Created users.getActivity procedure - Get recent user activities (articles, comments, ratings)
+- [x] Created users.getStats procedure - Get user statistics (counts)
+- [x] Enhanced users.getProfile procedure - Get user information
+- [x] Enhanced users.updateProfile procedure - Update user information
+
+### User Profile Page Features
+- [x] Display user information (name, email, phone, address, role)
+- [x] Show user avatar and join date
+- [x] Display user activity statistics (articles, comments, ratings, files)
+- [x] Show recent activity timeline (last 10 activities)
+- [x] Activity type indicators with icons (article, comment, rating)
+- [x] Edit profile functionality with form validation
+- [x] Responsive layout for desktop and mobile
+- [x] Loading states and error handling
+- [x] Date formatting with Thai locale (date-fns)
+- [x] Sticky profile card on desktop view
+
+### Testing
+- [x] Test profile page loads correctly
+- [x] Test user information displays properly
+- [x] Test activity data fetches successfully
+- [x] Test edit functionality works
+- [x] Test statistics calculate correctly
+- [x] Run full test suite - 33/35 passing (94%)
+- [x] Verified no TypeScript errors
