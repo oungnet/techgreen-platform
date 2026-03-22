@@ -1,20 +1,76 @@
 import "dotenv/config";
 import { eq, and, or, desc, like, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
+import { drizzle } from "drizzle-orm/mysql2";
+import * as schema from "./schema";
 import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic, userNotifications, UserNotification, InsertUserNotification, userActivity, UserActivity, InsertUserActivity, notificationPreferences, NotificationPreference, InsertNotificationPreference } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-console.log("DB URL:", process.env.DATABASE_URL);
-const connection = process.env.DATABASE_URL
-  ? mysql.createPool(process.env.DATABASE_URL)
-  : null;
+const DATABASE_URL = process.env.DATABASE_URL || ENV.databaseUrl || "";
+const connection = await mysql.createConnection(DATABASE_URL);
 
-export const db = connection ? drizzle(connection) : null;
+export const db = drizzle(connection, {
+  schema: {
+    users: schema.users,
+    files: schema.files,
+    fileShares: schema.fileShares,
+    articles: schema.articles
+  }
+});
+
+function maskDatabaseUrl(url: string) {
+  if (!url) return "(empty)";
+  if (url.startsWith("file:")) return url;
+  try {
+    const parsed = new URL(url);
+    const username = parsed.username ? `${parsed.username}:***@` : "";
+    return `${parsed.protocol}//${username}${parsed.host}${parsed.pathname}`;
+  } catch {
+    return "(invalid-url)";
+  }
+}
+
+console.log("[Database] Config URL:", maskDatabaseUrl(DATABASE_URL));
+
+function createDb() {
+  if (!DATABASE_URL) {
+    console.warn("[Database] DATABASE_URL is missing.");
+    return null;
+  }
+
+  try {
+    if (DATABASE_URL.startsWith("file:")) {
+      const sqlitePath = DATABASE_URL.replace(/^file:/, "") || "./dev.db";
+      const sqlite = new Database(sqlitePath);
+      return drizzle(sqlite);
+    }
+
+    const pool = mysql.createPool(DATABASE_URL);
+    return drizzleMysql(pool);
+  } catch (error) {
+    dbInitError = error;
+    console.error("[Database] Failed to initialize connection:", error);
+    return null;
+  }
+}
+
+export const db = createDb();
 
 export async function getDb() {
   if (!db) {
-    console.warn("[Database] DATABASE_URL is missing, database not available");
+    if (!DATABASE_URL) {
+      console.warn("[Database] Database not available: missing DATABASE_URL.");
+    } else if (DATABASE_URL.startsWith("file:")) {
+      console.warn(
+        "[Database] Database not available: SQLite initialization failed. " +
+        "If using Node.js 24+, better-sqlite3 may require local native build tooling."
+      );
+    } else {
+      console.warn("[Database] Database not available: failed to initialize MySQL connection.");
+    }
+    if (dbInitError) {
+      console.warn("[Database] Last init error:", dbInitError);
+    }
   }
   return db;
 }
@@ -205,9 +261,9 @@ export async function shareFile(share: InsertFileShare): Promise<FileShare | und
     const query = share.shareToken
       ? await db.select().from(fileShares).where(eq(fileShares.shareToken, share.shareToken)).limit(1)
       : await db.select().from(fileShares)
-          .where(and(eq(fileShares.fileId, share.fileId), eq(fileShares.sharedWithUserId, share.sharedWithUserId)))
-          .orderBy(desc(fileShares.createdAt))
-          .limit(1);
+        .where(and(eq(fileShares.fileId, share.fileId), eq(fileShares.sharedWithUserId, share.sharedWithUserId)))
+        .orderBy(desc(fileShares.createdAt))
+        .limit(1);
     return query.length > 0 ? query[0] : undefined;
   } catch (error) {
     console.error("[Database] Failed to share file:", error);
@@ -458,23 +514,23 @@ export async function getPublishedArticlesPage(options: ArticleListFilters = {})
   try {
     const itemsPromise = (whereClause
       ? db
-          .select({
-            id: articles.id,
-            title: articles.title,
-            slug: articles.slug,
-            excerpt: articles.excerpt,
-            category: articles.category,
-            published: articles.published,
-            authorId: articles.authorId,
-            viewCount: articles.viewCount,
-            createdAt: articles.createdAt,
-            updatedAt: articles.updatedAt,
-          })
-          .from(articles)
-          .where(whereClause)
-          .orderBy(desc(articles.createdAt))
-          .limit(limitValue)
-          .offset(offsetValue)
+        .select({
+          id: articles.id,
+          title: articles.title,
+          slug: articles.slug,
+          excerpt: articles.excerpt,
+          category: articles.category,
+          published: articles.published,
+          authorId: articles.authorId,
+          viewCount: articles.viewCount,
+          createdAt: articles.createdAt,
+          updatedAt: articles.updatedAt,
+        })
+        .from(articles)
+        .where(whereClause)
+        .orderBy(desc(articles.createdAt))
+        .limit(limitValue)
+        .offset(offsetValue)
       : db
         .select({
           id: articles.id,
@@ -1156,7 +1212,7 @@ export async function getUserActivityStats(userId: number): Promise<{ views: num
   try {
     const activities = await db.select().from(userActivity)
       .where(eq(userActivity.userId, userId));
-    
+
     const stats = {
       views: activities.filter(a => a.activityType === 'view_article').length,
       comments: activities.filter(a => a.activityType === 'create_comment').length,
@@ -1197,7 +1253,7 @@ export async function updateNotificationPreferences(userId: number, preferences:
   try {
     const existing = await db.select().from(notificationPreferences)
       .where(eq(notificationPreferences.userId, userId));
-    
+
     if (existing.length === 0) {
       await db.insert(notificationPreferences).values({ userId, ...preferences });
     } else {

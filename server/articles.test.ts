@@ -20,7 +20,7 @@ describe("Articles API", () => {
         excerpt: "Test excerpt",
         content: "Test content",
         category: "benefits",
-        published: true,
+        published: 1,
         authorId: 1,
       });
 
