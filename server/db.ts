@@ -1,22 +1,31 @@
 import "dotenv/config";
+import "dotenv/config";
 import { eq, and, or, desc, like, sql } from "drizzle-orm";
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
-import * as schema from "./schema";
-import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic, userNotifications, UserNotification, InsertUserNotification, userActivity, UserActivity, InsertUserActivity, notificationPreferences, NotificationPreference, InsertNotificationPreference } from "../drizzle/schema";
+import * as schema from "../drizzle/schema"; // ตรวจสอบ Path ให้ถูกต้อง
 import { ENV } from './_core/env';
-
+// ดึงค่า URL จาก Environment
 const DATABASE_URL = process.env.DATABASE_URL || ENV.databaseUrl || "";
+
+// สร้าง Connection แบบ Single Instance สำหรับ MySQL
 const connection = await mysql.createConnection(DATABASE_URL);
 
+// Export db เพียงครั้งเดียว และระบุ schema ให้ครบ
 export const db = drizzle(connection, {
   schema: {
     users: schema.users,
     files: schema.files,
     fileShares: schema.fileShares,
-    articles: schema.articles
-  }
+    articles: schema.articles,
+    comments: schema.comments,
+    ratings: schema.ratings,
+    // เพิ่ม schema อื่นๆ ที่คุณใช้งานตามความจำเป็น
+  },
+  mode: 'default',
 });
+
+// ลบฟังก์ชัน createDb() และการประกาศ db รอบที่สองทิ้งไปเลย
 
 function maskDatabaseUrl(url: string) {
   if (!url) return "(empty)";
