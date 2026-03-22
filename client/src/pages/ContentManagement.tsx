@@ -156,13 +156,13 @@ export default function ContentManagement() {
 
         {articlesQuery.isLoading ? (
           <div>Loading articles...</div>
-        ) : articlesQuery.data?.length === 0 ? (
+        ) : (articlesQuery.data?.items?.length ?? 0) === 0 ? (
           <Card className="p-8 text-center text-gray-500">
             <p>No articles yet. Create your first article!</p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {articlesQuery.data?.map((article: Article) => (
+            {articlesQuery.data?.items?.map((article: Article) => (
               <Card key={article.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">

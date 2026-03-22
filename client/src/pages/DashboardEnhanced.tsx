@@ -38,7 +38,7 @@ export default function DashboardEnhanced() {
     if (dashboardQuery.data && articlesQuery.data) {
       const totalComments = dashboardQuery.data.stats?.commentsCreated || 0;
       const totalUsers = dashboardQuery.data.stats?.articlesRead || 5; // Fallback to 5 users
-      const totalArticles = articlesQuery.data.length || 0;
+      const totalArticles = articlesQuery.data.items.length || 0;
       
       // Calculate engagement rate (simple formula)
       const engagementRate = totalUsers > 0 

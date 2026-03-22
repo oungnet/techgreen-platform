@@ -4,7 +4,10 @@ import { TRPCError } from "@trpc/server";
 import {
   createArticle,
   getArticleBySlug,
+  getPublishedArticleCategories,
+  getPublishedArticleTags,
   getPublishedArticles,
+  getPublishedArticlesPage,
   searchArticles,
   createComment,
   getArticleComments,
@@ -13,18 +16,96 @@ import {
 } from "../db";
 
 export const articlesRouter = router({
+  feed: publicProcedure
+    .input(
+      z.object({
+        limit: z.number().int().min(1).max(50).default(10),
+        offset: z.number().int().min(0).default(0),
+        search: z.string().optional(),
+        category: z.string().optional(),
+        tag: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        const page = await getPublishedArticlesPage({
+          limit: input.limit,
+          offset: input.offset,
+          search: input.search,
+          category: input.category,
+          tag: input.tag,
+        });
+
+        return {
+          ...page,
+          page: Math.floor(page.offset / page.limit) + 1,
+          hasPrevious: page.offset > 0,
+          hasNext: page.offset + page.items.length < page.total,
+        };
+      } catch (error) {
+        console.error("[Articles] Failed to load feed:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to load feed",
+        });
+      }
+    }),
+
+  categories: publicProcedure.query(async () => {
+    try {
+      return await getPublishedArticleCategories();
+    } catch (error) {
+      console.error("[Articles] Failed to list categories:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to list categories",
+      });
+    }
+  }),
+
+  tags: publicProcedure
+    .input(
+      z
+        .object({
+          limit: z.number().int().min(1).max(100).default(50),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      try {
+        return await getPublishedArticleTags(input?.limit ?? 50);
+      } catch (error) {
+        console.error("[Articles] Failed to list tags:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to list tags",
+        });
+      }
+    }),
+
   // Get published articles with pagination
   list: publicProcedure
     .input(
       z.object({
         limit: z.number().int().min(1).max(100).default(10),
         offset: z.number().int().min(0).default(0),
+        search: z.string().optional(),
+        category: z.string().optional(),
+        tag: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
       try {
-        const articles = await getPublishedArticles(input.limit, input.offset);
-        return articles;
+        console.log("INPUT:", input);
+        const articlesResult = await getPublishedArticles({
+          limit: input.limit,
+          offset: input.offset,
+          search: input.search,
+          category: input.category,
+          tag: input.tag,
+        });
+        console.log("RESULT:", articlesResult);
+        return { items: articlesResult };
       } catch (error) {
         console.error("[Articles] Failed to list articles:", error);
         throw new TRPCError({
@@ -63,11 +144,20 @@ export const articlesRouter = router({
       z.object({
         query: z.string().min(1),
         limit: z.number().int().min(1).max(50).default(10),
+        offset: z.number().int().min(0).default(0),
+        category: z.string().optional(),
+        tag: z.string().optional(),
       })
     )
     .query(async ({ input }) => {
       try {
-        const results = await searchArticles(input.query, input.limit);
+        const results = await searchArticles(
+          input.query,
+          input.limit,
+          input.offset,
+          input.category,
+          input.tag
+        );
         return results;
       } catch (error) {
         console.error("[Articles] Failed to search articles:", error);

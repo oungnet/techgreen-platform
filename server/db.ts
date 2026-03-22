@@ -1,21 +1,22 @@
-import { eq, and, desc, like } from "drizzle-orm";
+import "dotenv/config";
+import { eq, and, or, desc, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users, files, fileShares, File, InsertFile, FileShare, InsertFileShare, articles, Article, InsertArticle, comments, Comment, InsertComment, ratings, Rating, InsertRating, emailSubscriptions, EmailSubscription, InsertEmailSubscription, emailNotifications, EmailNotification, InsertEmailNotification, contentModerations, ContentModeration, InsertContentModeration, emailCampaigns, EmailCampaign, InsertEmailCampaign, campaignRecipients, CampaignRecipient, InsertCampaignRecipient, userAnalytics, UserAnalytic, InsertUserAnalytic, userNotifications, UserNotification, InsertUserNotification, userActivity, UserActivity, InsertUserActivity, notificationPreferences, NotificationPreference, InsertNotificationPreference } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-let _db: ReturnType<typeof drizzle> | null = null;
+console.log("DB URL:", process.env.DATABASE_URL);
+const connection = process.env.DATABASE_URL
+  ? mysql.createPool(process.env.DATABASE_URL)
+  : null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
+export const db = connection ? drizzle(connection) : null;
+
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-      _db = null;
-    }
+  if (!db) {
+    console.warn("[Database] DATABASE_URL is missing, database not available");
   }
-  return _db;
+  return db;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -292,45 +293,309 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
   }
 }
 
-export async function getPublishedArticles(limit: number = 10, offset: number = 0): Promise<Article[]> {
+type ArticleListFilters = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  category?: string;
+  tag?: string;
+  publishedOnly?: boolean;
+};
+
+type ArticleFeedItem = {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  category: string;
+  published: number;
+  authorId: number;
+  viewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function buildKeywordFilter(keyword: string) {
+  return or(
+    like(articles.title, `%${keyword}%`),
+    like(articles.excerpt, `%${keyword}%`),
+    like(articles.content, `%${keyword}%`),
+    like(articles.category, `%${keyword}%`)
+  );
+}
+
+function buildTagFilter(tag: string) {
+  const normalizedTag = tag.replace(/^#/, "");
+  return or(
+    like(articles.title, `%#${normalizedTag}%`),
+    like(articles.excerpt, `%#${normalizedTag}%`),
+    like(articles.content, `%#${normalizedTag}%`)
+  );
+}
+
+function buildPublishedFilter() {
+  return or(
+    eq(articles.published, true as any),
+    eq(articles.published, 1 as any)
+  );
+}
+
+async function ensureSeedArticles(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+  const existing = await db.select({ total: sql<number>`count(*)` }).from(articles);
+  const total = Number(existing[0]?.total ?? 0);
+  if (total > 0) return;
+
+  await db.insert(articles).values([
+    {
+      title: "Smart Farming IoT",
+      slug: "smart-farming-iot",
+      content:
+        "Smart farming combines sensors and telemetry to optimize irrigation, fertilizer usage, and crop monitoring.",
+      excerpt: "Using IoT in agriculture",
+      category: "Tech",
+      authorId: 1,
+      published: true as any,
+    },
+    {
+      title: "Carbon Credit Thailand",
+      slug: "carbon-credit-thailand",
+      content:
+        "A practical overview of ESG and carbon credit mechanisms in Thailand for climate-focused organizations.",
+      excerpt: "ESG and sustainability",
+      category: "ESG",
+      authorId: 1,
+      published: true as any,
+    },
+    {
+      title: "Inclusive Green Innovation",
+      slug: "inclusive-green-innovation",
+      content:
+        "How inclusive design and green innovation programs can scale impact across communities.",
+      excerpt: "Building inclusive impact through green technology.",
+      category: "Innovation",
+      authorId: 1,
+      published: true as any,
+    },
+  ]);
+}
+
+export async function getPublishedArticles(
+  optionsOrLimit: ArticleListFilters | number = 10,
+  offset: number = 0
+): Promise<Article[]> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot get articles: database not available");
     return [];
   }
 
+  const options: ArticleListFilters =
+    typeof optionsOrLimit === "number"
+      ? { limit: optionsOrLimit, offset }
+      : optionsOrLimit;
+
+  const limitValue = options.limit ?? 10;
+  const offsetValue = options.offset ?? 0;
+  const search = options.search?.trim();
+  const category = options.category?.trim();
+  const tag = options.tag?.trim();
+  const publishedOnly = options.publishedOnly ?? true;
+
+  await ensureSeedArticles(db);
+
+  const filters: Array<any> = [];
+  if (publishedOnly) filters.push(buildPublishedFilter()!);
+  if (search) filters.push(buildKeywordFilter(search)!);
+  if (category && category.toLowerCase() !== "all") filters.push(eq(articles.category, category));
+  if (tag) filters.push(buildTagFilter(tag)!);
+
+  const whereClause =
+    filters.length === 0 ? undefined : filters.length > 1 ? and(...filters) : filters[0];
+
   try {
-    const result = await db.select().from(articles)
-      .where(eq(articles.published, 1))
-      .orderBy(desc(articles.createdAt))
-      .limit(limit)
-      .offset(offset);
-    return result;
+    console.log("RAW DB:", await db.select().from(articles));
+    console.log("Filters:", { search, category, tag });
+    const query = db.select().from(articles).orderBy(desc(articles.createdAt)).limit(limitValue).offset(offsetValue);
+    const articlesResult = whereClause ? await query.where(whereClause) : await query;
+    console.log("Query result:", articlesResult);
+    console.log("FILTERED:", articlesResult);
+    return articlesResult;
   } catch (error) {
     console.error("[Database] Failed to get articles:", error);
     throw error;
   }
 }
 
-export async function searchArticles(query: string, limit: number = 10): Promise<Article[]> {
+export async function getPublishedArticlesPage(options: ArticleListFilters = {}): Promise<{
+  items: ArticleFeedItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot search articles: database not available");
+    console.warn("[Database] Cannot get paged articles: database not available");
+    return { items: [], total: 0, limit: options.limit ?? 10, offset: options.offset ?? 0 };
+  }
+
+  const limitValue = options.limit ?? 10;
+  const offsetValue = options.offset ?? 0;
+  const search = options.search?.trim();
+  const category = options.category?.trim();
+  const tag = options.tag?.trim();
+  const publishedOnly = options.publishedOnly ?? true;
+
+  await ensureSeedArticles(db);
+
+  const filters: Array<any> = [];
+  if (publishedOnly) filters.push(buildPublishedFilter()!);
+  if (search) filters.push(buildKeywordFilter(search)!);
+  if (category && category.toLowerCase() !== "all") filters.push(eq(articles.category, category));
+  if (tag) filters.push(buildTagFilter(tag)!);
+  const whereClause =
+    filters.length === 0 ? undefined : filters.length > 1 ? and(...filters) : filters[0];
+
+  try {
+    const itemsPromise = (whereClause
+      ? db
+          .select({
+            id: articles.id,
+            title: articles.title,
+            slug: articles.slug,
+            excerpt: articles.excerpt,
+            category: articles.category,
+            published: articles.published,
+            authorId: articles.authorId,
+            viewCount: articles.viewCount,
+            createdAt: articles.createdAt,
+            updatedAt: articles.updatedAt,
+          })
+          .from(articles)
+          .where(whereClause)
+          .orderBy(desc(articles.createdAt))
+          .limit(limitValue)
+          .offset(offsetValue)
+      : db
+        .select({
+          id: articles.id,
+          title: articles.title,
+          slug: articles.slug,
+          excerpt: articles.excerpt,
+          category: articles.category,
+          published: articles.published,
+          authorId: articles.authorId,
+          viewCount: articles.viewCount,
+          createdAt: articles.createdAt,
+          updatedAt: articles.updatedAt,
+        })
+        .from(articles)
+        .orderBy(desc(articles.createdAt))
+        .limit(limitValue)
+        .offset(offsetValue)) as Promise<ArticleFeedItem[]>;
+
+    const totalPromise = whereClause
+      ? db.select({ total: sql<number>`count(*)` }).from(articles).where(whereClause)
+      : db.select({ total: sql<number>`count(*)` }).from(articles);
+
+    const [items, totalRows] = await Promise.all([itemsPromise, totalPromise]);
+    console.log("RAW DB:", await db.select().from(articles));
+    console.log("FILTERED:", items);
+
+    return {
+      items,
+      total: Number(totalRows[0]?.total ?? 0),
+      limit: limitValue,
+      offset: offsetValue,
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get paged articles:", error);
+    throw error;
+  }
+}
+
+export async function getPublishedArticleCategories(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get article categories: database not available");
     return [];
   }
 
   try {
-    const result = await db.select().from(articles)
-      .where(and(
-        eq(articles.published, 1),
-        like(articles.title, `%${query}%`)
-      ))
-      .limit(limit);
-    return result;
+    await ensureSeedArticles(db);
+
+    const rows = await db
+      .select({ category: articles.category })
+      .from(articles)
+      .groupBy(articles.category)
+      .orderBy(articles.category);
+
+    return rows
+      .map((row) => row.category)
+      .filter((value): value is string => Boolean(value && value.trim()));
   } catch (error) {
-    console.error("[Database] Failed to search articles:", error);
+    console.error("[Database] Failed to get article categories:", error);
     throw error;
   }
+}
+
+export async function getPublishedArticleTags(limit: number = 50): Promise<string[]> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get article tags: database not available");
+    return [];
+  }
+
+  try {
+    await ensureSeedArticles(db);
+
+    const rows = await db
+      .select({
+        title: articles.title,
+        excerpt: articles.excerpt,
+        content: articles.content,
+      })
+      .from(articles)
+      .orderBy(desc(articles.createdAt))
+      .limit(300);
+
+    const tagMap = new Map<string, string>();
+    const hashtagRegex = /\B#([a-zA-Z0-9_-]{2,40})/g;
+
+    for (const row of rows) {
+      const text = `${row.title ?? ""} ${row.excerpt ?? ""} ${row.content ?? ""}`;
+      let match = hashtagRegex.exec(text);
+      while (match) {
+        const rawTag = match[1];
+        const normalized = rawTag.toLowerCase();
+        if (!tagMap.has(normalized)) {
+          tagMap.set(normalized, rawTag);
+        }
+        match = hashtagRegex.exec(text);
+      }
+      hashtagRegex.lastIndex = 0;
+    }
+
+    return Array.from(tagMap.values()).slice(0, limit);
+  } catch (error) {
+    console.error("[Database] Failed to get article tags:", error);
+    throw error;
+  }
+}
+
+export async function searchArticles(
+  query: string,
+  limit: number = 10,
+  offset: number = 0,
+  category?: string,
+  tag?: string
+): Promise<Article[]> {
+  return getPublishedArticles({
+    search: query,
+    limit,
+    offset,
+    category,
+    tag,
+  });
 }
 
 // Comment Management Queries
