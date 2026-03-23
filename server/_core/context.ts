@@ -16,8 +16,12 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
+    // Fallback to passport session user when Manus OAuth cookie is not present.
+    user = (opts.req.user as User | undefined) ?? null;
+  }
+
+  if (!user && opts.req.user) {
+    user = opts.req.user as User;
   }
 
   return {

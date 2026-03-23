@@ -1,35 +1,14 @@
 import "dotenv/config";
-import "dotenv/config";
 import { eq, and, or, desc, like, sql } from "drizzle-orm";
 import mysql from "mysql2/promise";
 import { drizzle } from "drizzle-orm/mysql2";
-import * as schema from "../drizzle/schema"; // ตรวจสอบ Path ให้ถูกต้อง
+import * as schema from "../drizzle/schema";
 import { ENV } from './_core/env';
-// ดึงค่า URL จาก Environment
+
 const DATABASE_URL = process.env.DATABASE_URL || ENV.databaseUrl || "";
-
-// สร้าง Connection แบบ Single Instance สำหรับ MySQL
-const connection = await mysql.createConnection(DATABASE_URL);
-
-// Export db เพียงครั้งเดียว และระบุ schema ให้ครบ
-export const db = drizzle(connection, {
-  schema: {
-    users: schema.users,
-    files: schema.files,
-    fileShares: schema.fileShares,
-    articles: schema.articles,
-    comments: schema.comments,
-    ratings: schema.ratings,
-    // เพิ่ม schema อื่นๆ ที่คุณใช้งานตามความจำเป็น
-  },
-  mode: 'default',
-});
-
-// ลบฟังก์ชัน createDb() และการประกาศ db รอบที่สองทิ้งไปเลย
 
 function maskDatabaseUrl(url: string) {
   if (!url) return "(empty)";
-  if (url.startsWith("file:")) return url;
   try {
     const parsed = new URL(url);
     const username = parsed.username ? `${parsed.username}:***@` : "";
@@ -41,46 +20,41 @@ function maskDatabaseUrl(url: string) {
 
 console.log("[Database] Config URL:", maskDatabaseUrl(DATABASE_URL));
 
-function createDb() {
-  if (!DATABASE_URL) {
-    console.warn("[Database] DATABASE_URL is missing.");
-    return null;
-  }
-
-  try {
-    if (DATABASE_URL.startsWith("file:")) {
-      const sqlitePath = DATABASE_URL.replace(/^file:/, "") || "./dev.db";
-      const sqlite = new Database(sqlitePath);
-      return drizzle(sqlite);
-    }
-
-    const pool = mysql.createPool(DATABASE_URL);
-    return drizzleMysql(pool);
-  } catch (error) {
-    dbInitError = error;
-    console.error("[Database] Failed to initialize connection:", error);
-    return null;
-  }
+if (!DATABASE_URL) {
+  throw new Error("[Database] DATABASE_URL is missing.");
 }
 
-export const db = createDb();
+// Create connection pool
+const pool = mysql.createPool(DATABASE_URL);
+
+// Export db instance
+export const db = drizzle(pool, {
+  schema,
+  mode: 'default',
+});
+
+// Re-export schema types for convenience
+export type User = schema.User;
+export type InsertUser = schema.InsertUser;
+export type File = schema.File;
+export type InsertFile = schema.InsertFile;
+export type FileShare = schema.FileShare;
+export type InsertFileShare = schema.InsertFileShare;
+export type Article = schema.Article;
+export type InsertArticle = schema.InsertArticle;
+export type Comment = schema.Comment;
+export type InsertComment = schema.InsertComment;
+export type Rating = schema.Rating;
+export type InsertRating = schema.InsertRating;
+
+const {
+  users, files, fileShares, articles, comments, ratings,
+  emailSubscriptions, emailNotifications, contentModerations,
+  emailCampaigns, campaignRecipients, userAnalytics,
+  userNotifications, userActivity, notificationPreferences
+} = schema;
 
 export async function getDb() {
-  if (!db) {
-    if (!DATABASE_URL) {
-      console.warn("[Database] Database not available: missing DATABASE_URL.");
-    } else if (DATABASE_URL.startsWith("file:")) {
-      console.warn(
-        "[Database] Database not available: SQLite initialization failed. " +
-        "If using Node.js 24+, better-sqlite3 may require local native build tooling."
-      );
-    } else {
-      console.warn("[Database] Database not available: failed to initialize MySQL connection.");
-    }
-    if (dbInitError) {
-      console.warn("[Database] Last init error:", dbInitError);
-    }
-  }
   return db;
 }
 
@@ -89,30 +63,20 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     throw new Error("User openId is required for upsert");
   }
 
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
-  }
-
   try {
     const values: InsertUser = {
       openId: user.openId,
     };
-    const updateSet: Record<string, unknown> = {};
+    const updateSet: Record<string, any> = {};
 
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
+    const textFields = ["name", "email", "loginMethod", "bio", "avatar", "phone", "address"] as const;
 
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
+    textFields.forEach(field => {
+      if (user[field] !== undefined) {
+        values[field] = user[field];
+        updateSet[field] = user[field];
+      }
+    });
 
     if (user.lastSignedIn !== undefined) {
       values.lastSignedIn = user.lastSignedIn;
@@ -144,29 +108,25 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 }
 
 export async function getUserByOpenId(openId: string) {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
 
+export async function getUserById(id: number) {
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const result = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 // File Management Queries
-
 export async function createFile(file: InsertFile): Promise<File | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create file: database not available");
-    return undefined;
-  }
-
   try {
     await db.insert(files).values(file);
-    // Fetch the file by fileKey which is unique
     const insertedFile = await db.select().from(files).where(eq(files.fileKey, file.fileKey)).limit(1);
     return insertedFile.length > 0 ? insertedFile[0] : undefined;
   } catch (error) {
@@ -176,97 +136,298 @@ export async function createFile(file: InsertFile): Promise<File | undefined> {
 }
 
 export async function getFileById(fileId: number): Promise<File | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get file: database not available");
-    return undefined;
-  }
-
-  try {
-    const result = await db.select().from(files).where(eq(files.id, fileId)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to get file:", error);
-    throw error;
-  }
+  const result = await db.select().from(files).where(eq(files.id, fileId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserFiles(userId: number): Promise<File[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user files: database not available");
-    return [];
-  }
-
-  try {
-    const result = await db.select().from(files)
-      .where(eq(files.userId, userId))
-      .orderBy(desc(files.createdAt));
-    return result;
-  } catch (error) {
-    console.error("[Database] Failed to get user files:", error);
-    throw error;
-  }
+  return await db.select().from(files)
+    .where(eq(files.userId, userId))
+    .orderBy(desc(files.createdAt));
 }
 
 export async function deleteFile(fileId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot delete file: database not available");
-    return false;
+  const file = await getFileById(fileId);
+  if (!file || file.userId !== userId) {
+    throw new Error("Unauthorized: file not found or user is not the owner");
   }
 
-  try {
-    // Verify ownership
-    const file = await getFileById(fileId);
-    if (!file || file.userId !== userId) {
-      throw new Error("Unauthorized: file not found or user is not the owner");
-    }
-
-    // Delete file shares first
-    await db.delete(fileShares).where(eq(fileShares.fileId, fileId));
-
-    // Delete file
-    await db.delete(files).where(eq(files.id, fileId));
-    return true;
-  } catch (error) {
-    console.error("[Database] Failed to delete file:", error);
-    throw error;
-  }
+  await db.delete(fileShares).where(eq(fileShares.fileId, fileId));
+  await db.delete(files).where(eq(files.id, fileId));
+  return true;
 }
 
 export async function updateFile(fileId: number, userId: number, updates: Partial<File>): Promise<File | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot update file: database not available");
-    return undefined;
+  const file = await getFileById(fileId);
+  if (!file || file.userId !== userId) {
+    throw new Error("Unauthorized: file not found or user is not the owner");
   }
 
-  try {
-    // Verify ownership
-    const file = await getFileById(fileId);
-    if (!file || file.userId !== userId) {
-      throw new Error("Unauthorized: file not found or user is not the owner");
-    }
+  await db.update(files).set(updates).where(eq(files.id, fileId));
+  return getFileById(fileId);
+}
 
-    await db.update(files).set(updates).where(eq(files.id, fileId));
-    return getFileById(fileId);
+const fallbackArticles: Article[] = [
+  {
+    id: 1,
+    title: "Smart Farming IoT",
+    slug: "smart-farming-iot",
+    content: "Using IoT sensors to optimize irrigation and crop productivity.",
+    excerpt: "Using IoT in agriculture",
+    category: "Tech",
+    authorId: 1,
+    coverImage: null,
+    viewCount: 120,
+    published: 1,
+    createdAt: new Date("2026-01-10T09:00:00.000Z"),
+    updatedAt: new Date("2026-01-10T09:00:00.000Z"),
+  },
+  {
+    id: 2,
+    title: "Carbon Credit Thailand",
+    slug: "carbon-credit-thailand",
+    content: "How ESG and carbon credit mechanisms are evolving in Thailand.",
+    excerpt: "ESG and sustainability",
+    category: "ESG",
+    authorId: 1,
+    coverImage: null,
+    viewCount: 87,
+    published: 1,
+    createdAt: new Date("2026-01-18T09:00:00.000Z"),
+    updatedAt: new Date("2026-01-18T09:00:00.000Z"),
+  },
+  {
+    id: 3,
+    title: "Green AI in Industry",
+    slug: "green-ai-industry",
+    content: "Applying efficient AI models to reduce energy consumption in factories.",
+    excerpt: "Efficient AI and sustainability",
+    category: "Innovation",
+    authorId: 1,
+    coverImage: null,
+    viewCount: 64,
+    published: 1,
+    createdAt: new Date("2026-02-02T09:00:00.000Z"),
+    updatedAt: new Date("2026-02-02T09:00:00.000Z"),
+  },
+];
+
+function isConnectionError(error: unknown) {
+  const topLevelCode = (error as { code?: string })?.code;
+  const nestedCode = (error as { cause?: { code?: string } })?.cause?.code;
+  const code = topLevelCode ?? nestedCode;
+  return code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "ETIMEDOUT";
+}
+
+function getFallbackPublishedArticles(filters: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  category?: string;
+  tag?: string;
+}) {
+  const search = filters.search?.trim().toLowerCase();
+  const category = filters.category?.trim().toLowerCase();
+  const tag = filters.tag?.trim().replace(/^#/, "").toLowerCase();
+
+  let result = fallbackArticles.filter((article) => article.published === 1);
+
+  if (category && category !== "all") {
+    result = result.filter((article) => article.category.toLowerCase() === category);
+  }
+
+  if (search) {
+    result = result.filter((article) => {
+      const haystack = `${article.title} ${article.excerpt ?? ""} ${article.content} ${article.category}`.toLowerCase();
+      return haystack.includes(search);
+    });
+  }
+
+  if (tag) {
+    result = result.filter((article) => {
+      const haystack = `${article.title} ${article.excerpt ?? ""} ${article.content}`.toLowerCase();
+      return haystack.includes(`#${tag}`) || haystack.includes(tag);
+    });
+  }
+
+  result.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  const limit = filters.limit ?? 10;
+  const offset = filters.offset ?? 0;
+  return result.slice(offset, offset + limit);
+}
+
+// Article Management Queries
+export async function createArticle(article: InsertArticle): Promise<Article | undefined> {
+  try {
+    await db.insert(articles).values(article);
+    const result = await db.select().from(articles).where(eq(articles.slug, article.slug)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
   } catch (error) {
-    console.error("[Database] Failed to update file:", error);
+    console.error("[Database] Failed to create article:", error);
     throw error;
   }
 }
 
-export async function shareFile(share: InsertFileShare): Promise<FileShare | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot share file: database not available");
-    return undefined;
+export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
+  try {
+    const result = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    if (isConnectionError(error)) {
+      return fallbackArticles.find((article) => article.slug === slug);
+    }
+    throw error;
   }
+}
+
+export async function getPublishedArticles(filters: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  category?: string;
+  tag?: string;
+}) {
+  try {
+    let query = db.select().from(articles).where(eq(articles.published, 1));
+
+    if (filters.category) {
+      query = db.select().from(articles).where(and(eq(articles.published, 1), eq(articles.category, filters.category))) as any;
+    }
+
+    if (filters.search) {
+      query = db.select().from(articles).where(and(eq(articles.published, 1), or(like(articles.title, `%${filters.search}%`), like(articles.content, `%${filters.search}%`)))) as any;
+    }
+
+    return await (query as any).limit(filters.limit || 10).offset(filters.offset || 0).orderBy(desc(articles.createdAt));
+  } catch (error) {
+    if (isConnectionError(error)) {
+      console.warn("[Database] Cannot get articles from MySQL, using in-memory fallback.");
+      return getFallbackPublishedArticles(filters);
+    }
+    throw error;
+  }
+}
+
+export async function getPublishedArticleCategories() {
+  try {
+    const result = await db.select({ category: articles.category })
+      .from(articles)
+      .where(eq(articles.published, 1))
+      .groupBy(articles.category);
+    return result.map(r => r.category);
+  } catch (error) {
+    if (isConnectionError(error)) {
+      const unique = Array.from(new Set(fallbackArticles.map((article) => article.category)));
+      return unique;
+    }
+    throw error;
+  }
+}
+
+export async function getPublishedArticleTags(limit: number = 50) {
+  try {
+    return [];
+  } catch (error) {
+    if (isConnectionError(error)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
+export async function getPublishedArticlesPage(filters: {
+  limit: number;
+  offset: number;
+  search?: string;
+  category?: string;
+  tag?: string;
+}) {
+  const items = await getPublishedArticles(filters);
+  let total = 0;
 
   try {
+    const totalResult = await db.select({ count: sql<number>`count(*)` }).from(articles).where(eq(articles.published, 1));
+    total = totalResult[0]?.count || 0;
+  } catch (error) {
+    if (isConnectionError(error)) {
+      total = getFallbackPublishedArticles({ ...filters, limit: 10000, offset: 0 }).length;
+    } else {
+      throw error;
+    }
+  }
+
+  return {
+    items,
+    total,
+    limit: filters.limit,
+    offset: filters.offset,
+  };
+}
+
+// Comments & Ratings
+export async function createComment(comment: InsertComment) {
+  await db.insert(comments).values(comment);
+  return await db.select().from(comments).orderBy(desc(comments.createdAt)).limit(1).then(r => r[0]);
+}
+
+export async function getArticleComments(articleId: number) {
+  return await db.select().from(comments).where(and(eq(comments.articleId, articleId), eq(comments.approved, 1))).orderBy(desc(comments.createdAt));
+}
+
+export async function createOrUpdateRating(rating: InsertRating) {
+  await db.insert(ratings).values(rating).onDuplicateKeyUpdate({
+    set: { score: rating.score, updatedAt: new Date() }
+  });
+  return await db.select().from(ratings).where(and(eq(ratings.articleId, rating.articleId), eq(ratings.userId, rating.userId))).limit(1).then(r => r[0]);
+}
+
+export async function getArticleRating(articleId: number) {
+  const result = await db.select({
+    average: sql<number>`avg(${ratings.score})`,
+    count: sql<number>`count(*)`
+  }).from(ratings).where(eq(ratings.articleId, articleId));
+
+  return {
+    average: Number(result[0]?.average || 0),
+    count: result[0]?.count || 0
+  };
+}
+
+// User Activity & Notifications
+export async function logUserActivity(activity: schema.InsertUserActivity) {
+  await db.insert(userActivity).values(activity);
+}
+
+export async function getUserActivities(userId: number, limit: number = 10) {
+  return await db.select().from(userActivity).where(eq(userActivity.userId, userId)).orderBy(desc(userActivity.createdAt)).limit(limit);
+}
+
+export async function getUserNotifications(userId: number) {
+  return await db.select().from(userNotifications).where(eq(userNotifications.userId, userId)).orderBy(desc(userNotifications.createdAt));
+}
+
+export async function markNotificationAsRead(notificationId: number, userId: number) {
+  await db.update(userNotifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(userNotifications.id, notificationId), eq(userNotifications.userId, userId)));
+}
+
+export async function getDashboardStats(userId: number) {
+  const [articlesRead, commentsMade, filesUploaded] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(userActivity).where(and(eq(userActivity.userId, userId), eq(userActivity.activityType, 'view_article'))),
+    db.select({ count: sql<number>`count(*)` }).from(comments).where(eq(comments.userId, userId)),
+    db.select({ count: sql<number>`count(*)` }).from(files).where(eq(files.userId, userId)),
+  ]);
+
+  return {
+    articlesRead: articlesRead[0]?.count || 0,
+    commentsMade: commentsMade[0]?.count || 0,
+    filesUploaded: filesUploaded[0]?.count || 0,
+  };
+}
+
+export async function shareFile(share: InsertFileShare): Promise<FileShare | undefined> {
+  try {
     await db.insert(fileShares).values(share);
-    // Fetch the share by shareToken if available, or by fileId and sharedWithUserId
     const query = share.shareToken
       ? await db.select().from(fileShares).where(eq(fileShares.shareToken, share.shareToken)).limit(1)
       : await db.select().from(fileShares)
@@ -281,997 +442,157 @@ export async function shareFile(share: InsertFileShare): Promise<FileShare | und
 }
 
 export async function getFileShares(fileId: number): Promise<FileShare[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get file shares: database not available");
-    return [];
-  }
-
-  try {
-    const result = await db.select().from(fileShares).where(eq(fileShares.fileId, fileId));
-    return result;
-  } catch (error) {
-    console.error("[Database] Failed to get file shares:", error);
-    throw error;
-  }
+  return await db.select().from(fileShares).where(eq(fileShares.fileId, fileId));
 }
 
 export async function deleteFileShare(shareId: number, userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot delete file share: database not available");
-    return false;
+  const share = await db.select().from(fileShares).where(eq(fileShares.id, shareId)).limit(1);
+  if (share.length === 0) {
+    throw new Error("Share not found");
   }
 
-  try {
-    const share = await db.select().from(fileShares).where(eq(fileShares.id, shareId)).limit(1);
-    if (share.length === 0) {
-      throw new Error("Share not found");
-    }
-
-    const fileId = share[0].fileId;
-    const file = await getFileById(fileId);
-    if (!file || file.userId !== userId) {
-      throw new Error("Unauthorized: cannot delete share");
-    }
-
-    await db.delete(fileShares).where(eq(fileShares.id, shareId));
-    return true;
-  } catch (error) {
-    console.error("[Database] Failed to delete file share:", error);
-    throw error;
-  }
-}
-
-// Article Management Queries
-
-export async function createArticle(article: InsertArticle): Promise<Article | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create article: database not available");
-    return undefined;
+  const fileId = share[0].fileId;
+  const file = await getFileById(fileId);
+  if (!file || file.userId !== userId) {
+    throw new Error("Unauthorized: cannot delete share");
   }
 
-  try {
-    await db.insert(articles).values(article);
-    const result = await db.select().from(articles).where(eq(articles.slug, article.slug)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to create article:", error);
-    throw error;
-  }
+  await db.delete(fileShares).where(eq(fileShares.id, shareId));
+  return true;
 }
 
-export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get article: database not available");
-    return undefined;
-  }
-
-  try {
-    const result = await db.select().from(articles).where(eq(articles.slug, slug)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to get article:", error);
-    throw error;
-  }
-}
-
-type ArticleListFilters = {
-  limit?: number;
-  offset?: number;
-  search?: string;
-  category?: string;
-  tag?: string;
-  publishedOnly?: boolean;
-};
-
-type ArticleFeedItem = {
-  id: number;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  category: string;
-  published: number;
-  authorId: number;
-  viewCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-function buildKeywordFilter(keyword: string) {
-  return or(
-    like(articles.title, `%${keyword}%`),
-    like(articles.excerpt, `%${keyword}%`),
-    like(articles.content, `%${keyword}%`),
-    like(articles.category, `%${keyword}%`)
-  );
-}
-
-function buildTagFilter(tag: string) {
-  const normalizedTag = tag.replace(/^#/, "");
-  return or(
-    like(articles.title, `%#${normalizedTag}%`),
-    like(articles.excerpt, `%#${normalizedTag}%`),
-    like(articles.content, `%#${normalizedTag}%`)
-  );
-}
-
-function buildPublishedFilter() {
-  return or(
-    eq(articles.published, true as any),
-    eq(articles.published, 1 as any)
-  );
-}
-
-async function ensureSeedArticles(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
-  const existing = await db.select({ total: sql<number>`count(*)` }).from(articles);
-  const total = Number(existing[0]?.total ?? 0);
-  if (total > 0) return;
-
-  await db.insert(articles).values([
-    {
-      title: "Smart Farming IoT",
-      slug: "smart-farming-iot",
-      content:
-        "Smart farming combines sensors and telemetry to optimize irrigation, fertilizer usage, and crop monitoring.",
-      excerpt: "Using IoT in agriculture",
-      category: "Tech",
-      authorId: 1,
-      published: true as any,
-    },
-    {
-      title: "Carbon Credit Thailand",
-      slug: "carbon-credit-thailand",
-      content:
-        "A practical overview of ESG and carbon credit mechanisms in Thailand for climate-focused organizations.",
-      excerpt: "ESG and sustainability",
-      category: "ESG",
-      authorId: 1,
-      published: true as any,
-    },
-    {
-      title: "Inclusive Green Innovation",
-      slug: "inclusive-green-innovation",
-      content:
-        "How inclusive design and green innovation programs can scale impact across communities.",
-      excerpt: "Building inclusive impact through green technology.",
-      category: "Innovation",
-      authorId: 1,
-      published: true as any,
-    },
+// Analytics
+export async function getArticleStats() {
+  const [total, published, views] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(articles),
+    db.select({ count: sql<number>`count(*)` }).from(articles).where(eq(articles.published, 1)),
+    db.select({ count: sql<number>`sum(${articles.viewCount})` }).from(articles),
   ]);
+  return { total: total[0]?.count || 0, published: published[0]?.count || 0, views: views[0]?.count || 0 };
 }
 
-export async function getPublishedArticles(
-  optionsOrLimit: ArticleListFilters | number = 10,
-  offset: number = 0
-): Promise<Article[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get articles: database not available");
-    return [];
-  }
-
-  const options: ArticleListFilters =
-    typeof optionsOrLimit === "number"
-      ? { limit: optionsOrLimit, offset }
-      : optionsOrLimit;
-
-  const limitValue = options.limit ?? 10;
-  const offsetValue = options.offset ?? 0;
-  const search = options.search?.trim();
-  const category = options.category?.trim();
-  const tag = options.tag?.trim();
-  const publishedOnly = options.publishedOnly ?? true;
-
-  await ensureSeedArticles(db);
-
-  const filters: Array<any> = [];
-  if (publishedOnly) filters.push(buildPublishedFilter()!);
-  if (search) filters.push(buildKeywordFilter(search)!);
-  if (category && category.toLowerCase() !== "all") filters.push(eq(articles.category, category));
-  if (tag) filters.push(buildTagFilter(tag)!);
-
-  const whereClause =
-    filters.length === 0 ? undefined : filters.length > 1 ? and(...filters) : filters[0];
-
-  try {
-    console.log("RAW DB:", await db.select().from(articles));
-    console.log("Filters:", { search, category, tag });
-    const query = db.select().from(articles).orderBy(desc(articles.createdAt)).limit(limitValue).offset(offsetValue);
-    const articlesResult = whereClause ? await query.where(whereClause) : await query;
-    console.log("Query result:", articlesResult);
-    console.log("FILTERED:", articlesResult);
-    return articlesResult;
-  } catch (error) {
-    console.error("[Database] Failed to get articles:", error);
-    throw error;
-  }
+export async function getCommentStats() {
+  const [total, pending] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(comments),
+    db.select({ count: sql<number>`count(*)` }).from(comments).where(eq(comments.approved, 0)),
+  ]);
+  return { total: total[0]?.count || 0, pending: pending[0]?.count || 0 };
 }
 
-export async function getPublishedArticlesPage(options: ArticleListFilters = {}): Promise<{
-  items: ArticleFeedItem[];
-  total: number;
-  limit: number;
-  offset: number;
-}> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get paged articles: database not available");
-    return { items: [], total: 0, limit: options.limit ?? 10, offset: options.offset ?? 0 };
-  }
-
-  const limitValue = options.limit ?? 10;
-  const offsetValue = options.offset ?? 0;
-  const search = options.search?.trim();
-  const category = options.category?.trim();
-  const tag = options.tag?.trim();
-  const publishedOnly = options.publishedOnly ?? true;
-
-  await ensureSeedArticles(db);
-
-  const filters: Array<any> = [];
-  if (publishedOnly) filters.push(buildPublishedFilter()!);
-  if (search) filters.push(buildKeywordFilter(search)!);
-  if (category && category.toLowerCase() !== "all") filters.push(eq(articles.category, category));
-  if (tag) filters.push(buildTagFilter(tag)!);
-  const whereClause =
-    filters.length === 0 ? undefined : filters.length > 1 ? and(...filters) : filters[0];
-
-  try {
-    const itemsPromise = (whereClause
-      ? db
-        .select({
-          id: articles.id,
-          title: articles.title,
-          slug: articles.slug,
-          excerpt: articles.excerpt,
-          category: articles.category,
-          published: articles.published,
-          authorId: articles.authorId,
-          viewCount: articles.viewCount,
-          createdAt: articles.createdAt,
-          updatedAt: articles.updatedAt,
-        })
-        .from(articles)
-        .where(whereClause)
-        .orderBy(desc(articles.createdAt))
-        .limit(limitValue)
-        .offset(offsetValue)
-      : db
-        .select({
-          id: articles.id,
-          title: articles.title,
-          slug: articles.slug,
-          excerpt: articles.excerpt,
-          category: articles.category,
-          published: articles.published,
-          authorId: articles.authorId,
-          viewCount: articles.viewCount,
-          createdAt: articles.createdAt,
-          updatedAt: articles.updatedAt,
-        })
-        .from(articles)
-        .orderBy(desc(articles.createdAt))
-        .limit(limitValue)
-        .offset(offsetValue)) as Promise<ArticleFeedItem[]>;
-
-    const totalPromise = whereClause
-      ? db.select({ total: sql<number>`count(*)` }).from(articles).where(whereClause)
-      : db.select({ total: sql<number>`count(*)` }).from(articles);
-
-    const [items, totalRows] = await Promise.all([itemsPromise, totalPromise]);
-    console.log("RAW DB:", await db.select().from(articles));
-    console.log("FILTERED:", items);
-
-    return {
-      items,
-      total: Number(totalRows[0]?.total ?? 0),
-      limit: limitValue,
-      offset: offsetValue,
-    };
-  } catch (error) {
-    console.error("[Database] Failed to get paged articles:", error);
-    throw error;
-  }
+export async function getUserStats() {
+  const [total, admins] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(users),
+    db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'admin')),
+  ]);
+  return { total: total[0]?.count || 0, admins: admins[0]?.count || 0 };
 }
 
-export async function getPublishedArticleCategories(): Promise<string[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get article categories: database not available");
-    return [];
+// Search
+export async function searchArticles(query: string, limit: number = 10, offset: number = 0, category?: string, tag?: string) {
+  let whereClause = and(eq(articles.published, 1), or(like(articles.title, `%${query}%`), like(articles.content, `%${query}%`)));
+  if (category) {
+    whereClause = and(whereClause, eq(articles.category, category));
   }
-
-  try {
-    await ensureSeedArticles(db);
-
-    const rows = await db
-      .select({ category: articles.category })
-      .from(articles)
-      .groupBy(articles.category)
-      .orderBy(articles.category);
-
-    return rows
-      .map((row) => row.category)
-      .filter((value): value is string => Boolean(value && value.trim()));
-  } catch (error) {
-    console.error("[Database] Failed to get article categories:", error);
-    throw error;
-  }
+  const items = await db.select().from(articles).where(whereClause).limit(limit).offset(offset).orderBy(desc(articles.createdAt));
+  const totalResult = await db.select({ count: sql<number>`count(*)` }).from(articles).where(whereClause);
+  return { items, total: totalResult[0]?.count || 0 };
 }
 
-export async function getPublishedArticleTags(limit: number = 50): Promise<string[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get article tags: database not available");
-    return [];
-  }
-
-  try {
-    await ensureSeedArticles(db);
-
-    const rows = await db
-      .select({
-        title: articles.title,
-        excerpt: articles.excerpt,
-        content: articles.content,
-      })
-      .from(articles)
-      .orderBy(desc(articles.createdAt))
-      .limit(300);
-
-    const tagMap = new Map<string, string>();
-    const hashtagRegex = /\B#([a-zA-Z0-9_-]{2,40})/g;
-
-    for (const row of rows) {
-      const text = `${row.title ?? ""} ${row.excerpt ?? ""} ${row.content ?? ""}`;
-      let match = hashtagRegex.exec(text);
-      while (match) {
-        const rawTag = match[1];
-        const normalized = rawTag.toLowerCase();
-        if (!tagMap.has(normalized)) {
-          tagMap.set(normalized, rawTag);
-        }
-        match = hashtagRegex.exec(text);
-      }
-      hashtagRegex.lastIndex = 0;
-    }
-
-    return Array.from(tagMap.values()).slice(0, limit);
-  } catch (error) {
-    console.error("[Database] Failed to get article tags:", error);
-    throw error;
-  }
+// Campaigns
+export async function createEmailCampaign(campaign: any) {
+  await db.insert(emailCampaigns).values(campaign);
+  return await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt)).limit(1).then(r => r[0]);
 }
 
-export async function searchArticles(
-  query: string,
-  limit: number = 10,
-  offset: number = 0,
-  category?: string,
-  tag?: string
-): Promise<Article[]> {
-  return getPublishedArticles({
-    search: query,
-    limit,
-    offset,
-    category,
-    tag,
-  });
+export async function getCampaigns() {
+  return await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt));
 }
 
-// Comment Management Queries
-
-export async function createComment(comment: InsertComment): Promise<Comment | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create comment: database not available");
-    return undefined;
-  }
-
-  try {
-    await db.insert(comments).values(comment);
-    const result = await db.select().from(comments)
-      .where(and(eq(comments.articleId, comment.articleId), eq(comments.userId, comment.userId)))
-      .orderBy(desc(comments.createdAt))
-      .limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to create comment:", error);
-    throw error;
-  }
+export async function updateCampaignStatus(campaignId: number, status: any) {
+  await db.update(emailCampaigns).set({ status, updatedAt: new Date() }).where(eq(emailCampaigns.id, campaignId));
 }
 
-export async function getArticleComments(articleId: number): Promise<Comment[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get comments: database not available");
-    return [];
-  }
-
-  try {
-    const result = await db.select().from(comments)
-      .where(and(eq(comments.articleId, articleId), eq(comments.approved, 1)))
-      .orderBy(desc(comments.createdAt));
-    return result;
-  } catch (error) {
-    console.error("[Database] Failed to get comments:", error);
-    throw error;
-  }
+export async function addCampaignRecipient(campaignId: number, userId: number) {
+  await db.insert(campaignRecipients).values({ campaignId, userId });
 }
 
-// Rating Management Queries
-
-export async function createOrUpdateRating(rating: InsertRating): Promise<Rating | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create rating: database not available");
-    return undefined;
-  }
-
-  try {
-    const existing = await db.select().from(ratings)
-      .where(and(eq(ratings.articleId, rating.articleId), eq(ratings.userId, rating.userId)))
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db.update(ratings).set({ score: rating.score }).where(eq(ratings.id, existing[0].id));
-      return await db.select().from(ratings).where(eq(ratings.id, existing[0].id)).limit(1).then(r => r[0]);
-    } else {
-      await db.insert(ratings).values(rating);
-      const result = await db.select().from(ratings)
-        .where(and(eq(ratings.articleId, rating.articleId), eq(ratings.userId, rating.userId)))
-        .limit(1);
-      return result.length > 0 ? result[0] : undefined;
-    }
-  } catch (error) {
-    console.error("[Database] Failed to create/update rating:", error);
-    throw error;
-  }
+// Dashboard & Notifications
+export async function getUserActivityStats(userId: number) {
+  return await getDashboardStats(userId);
 }
 
-export async function getArticleRating(articleId: number): Promise<{ average: number; count: number }> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get rating: database not available");
-    return { average: 0, count: 0 };
-  }
-
-  try {
-    const result = await db.select().from(ratings).where(eq(ratings.articleId, articleId));
-    if (result.length === 0) return { average: 0, count: 0 };
-    const average = result.reduce((sum, r) => sum + r.score, 0) / result.length;
-    return { average, count: result.length };
-  } catch (error) {
-    console.error("[Database] Failed to get rating:", error);
-    throw error;
-  }
+export async function getUnreadNotificationCount(userId: number) {
+  const result = await db.select({ count: sql<number>`count(*)` }).from(userNotifications).where(and(eq(userNotifications.userId, userId), eq(userNotifications.isRead, 0)));
+  return result[0]?.count || 0;
 }
 
-// Email Subscription Queries
-
-export async function getOrCreateEmailSubscription(userId: number): Promise<EmailSubscription | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get email subscription: database not available");
-    return undefined;
-  }
-
-  try {
-    const existing = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
-    if (existing.length > 0) return existing[0];
-
-    const newSub: InsertEmailSubscription = { userId, subscribeToNewArticles: 1, subscribeToUpdates: 1, subscribeToPolicy: 1 };
-    await db.insert(emailSubscriptions).values(newSub);
-    const result = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to get/create email subscription:", error);
-    throw error;
-  }
+export async function markAllNotificationsAsRead(userId: number) {
+  await db.update(userNotifications).set({ isRead: 1, readAt: new Date() }).where(eq(userNotifications.userId, userId));
 }
 
-export async function updateEmailSubscription(userId: number, updates: Partial<EmailSubscription>): Promise<EmailSubscription | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot update email subscription: database not available");
-    return undefined;
-  }
-
-  try {
-    await db.update(emailSubscriptions).set(updates).where(eq(emailSubscriptions.userId, userId));
-    const result = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to update email subscription:", error);
-    throw error;
-  }
+export async function deleteUserNotification(notificationId: number) {
+  await db.delete(userNotifications).where(eq(userNotifications.id, notificationId));
 }
 
-// Email Notification Queries
-
-export async function createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification | undefined> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot create email notification: database not available");
-    return undefined;
-  }
-
-  try {
-    await db.insert(emailNotifications).values(notification);
-    const result = await db.select().from(emailNotifications)
-      .where(eq(emailNotifications.userId, notification.userId))
-      .orderBy(desc(emailNotifications.createdAt))
-      .limit(1);
-    return result.length > 0 ? result[0] : undefined;
-  } catch (error) {
-    console.error("[Database] Failed to create email notification:", error);
-    throw error;
-  }
+export async function getUserActivity(userId: number, limit: number = 10) {
+  return await db.select().from(userActivity).where(eq(userActivity.userId, userId)).orderBy(desc(userActivity.createdAt)).limit(limit);
 }
 
-export async function getUserEmailNotifications(userId: number): Promise<EmailNotification[]> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get email notifications: database not available");
-    return [];
-  }
+export async function getOrCreateNotificationPreferences(userId: number) {
+  const existing = await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1);
+  if (existing.length > 0) return existing[0];
 
-  try {
-    const result = await db.select().from(emailNotifications)
-      .where(eq(emailNotifications.userId, userId))
-      .orderBy(desc(emailNotifications.createdAt));
-    return result;
-  } catch (error) {
-    console.error("[Database] Failed to get email notifications:", error);
-    throw error;
-  }
+  await db.insert(notificationPreferences).values({ userId });
+  return await db.select().from(notificationPreferences).where(eq(notificationPreferences.userId, userId)).limit(1).then(r => r[0]);
 }
 
-export async function updateEmailNotificationStatus(notificationId: number, sent: boolean): Promise<void> {
-  const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot update email notification: database not available");
-    return;
-  }
-
-  try {
-    await db.update(emailNotifications)
-      .set({ sent: sent ? 1 : 0, sentAt: sent ? new Date() : null })
-      .where(eq(emailNotifications.id, notificationId));
-  } catch (error) {
-    console.error("[Database] Failed to update email notification:", error);
-    throw error;
-  }
+export async function updateNotificationPreferences(userId: number, prefs: any) {
+  await db.update(notificationPreferences).set({ ...prefs, updatedAt: new Date() }).where(eq(notificationPreferences.userId, userId));
 }
 
+// Subscriptions
+export async function getOrCreateEmailSubscription(userId: number) {
+  const existing = await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1);
+  if (existing.length > 0) return existing[0];
 
-// ============================================
-// Analytics Query Helpers
-// ============================================
-
-export async function getArticleStats(): Promise<{ total: number; published: number; totalViews: number }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.select().from(articles);
-    const published = result.filter(a => a.published === 1).length;
-    const totalViews = result.reduce((sum, a) => sum + (a.viewCount || 0), 0);
-    return { total: result.length, published, totalViews };
-  } catch (error) {
-    console.error("[Database] Failed to get article stats:", error);
-    throw error;
-  }
+  await db.insert(emailSubscriptions).values({ userId });
+  return await db.select().from(emailSubscriptions).where(eq(emailSubscriptions.userId, userId)).limit(1).then(r => r[0]);
 }
 
-export async function getCommentStats(): Promise<{ total: number; approved: number; pending: number }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.select().from(comments);
-    const approved = result.filter(c => c.approved === 1).length;
-    const pending = result.filter(c => c.approved === 0).length;
-    return { total: result.length, approved, pending };
-  } catch (error) {
-    console.error("[Database] Failed to get comment stats:", error);
-    throw error;
-  }
+export async function updateEmailSubscription(userId: number, updates: any) {
+  await db.update(emailSubscriptions).set({ ...updates, updatedAt: new Date() }).where(eq(emailSubscriptions.userId, userId));
+  return await getOrCreateEmailSubscription(userId);
 }
 
-export async function getUserStats(): Promise<{ total: number; admins: number; users: number }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.select().from(users);
-    const admins = result.filter(u => u.role === 'admin').length;
-    const userCount = result.filter(u => u.role === 'user').length;
-    return { total: result.length, admins, users: userCount };
-  } catch (error) {
-    console.error("[Database] Failed to get user stats:", error);
-    throw error;
-  }
+export async function getUserEmailNotifications(userId: number) {
+  return await db.select().from(emailNotifications).where(eq(emailNotifications.userId, userId)).orderBy(desc(emailNotifications.createdAt));
 }
 
-// ============================================
-// User Management Query Helpers
-// ============================================
-
-export async function updateUserRole(userId: number, role: 'admin' | 'user'): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    await db.update(users).set({ role }).where(eq(users.id, userId));
-  } catch (error) {
-    console.error("[Database] Failed to update user role:", error);
-    throw error;
-  }
+// Moderation
+export async function flagComment(commentId: number, reason: string, flaggedBy: number) {
+  await db.insert(contentModerations).values({ commentId, reason, flaggedBy });
 }
 
-export async function deactivateUser(userId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    // Mark user as inactive by setting a flag or deleting related data
-    // For now, we'll just update the user record
-    await db.update(users).set({ updatedAt: new Date() }).where(eq(users.id, userId));
-  } catch (error) {
-    console.error("[Database] Failed to deactivate user:", error);
-    throw error;
-  }
+export async function getModerationQueue() {
+  return await db.select().from(contentModerations).where(eq(contentModerations.status, 'pending')).orderBy(desc(contentModerations.createdAt));
 }
 
-// ============================================
-// Content Moderation Query Helpers
-// ============================================
+export async function approveModerationItem(moderationId: number, moderatedBy: number) {
+  const item = await db.select().from(contentModerations).where(eq(contentModerations.id, moderationId)).limit(1).then(r => r[0]);
+  if (!item) return;
 
-export async function flagComment(commentId: number, reason: string, flaggedBy: number): Promise<ContentModeration> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.insert(contentModerations).values({
-      commentId,
-      reason,
-      flaggedBy,
-      status: 'pending',
-    });
-
-    const moderation = await db.select().from(contentModerations)
-      .where(eq(contentModerations.id, (result as any).insertId));
-    return moderation[0];
-  } catch (error) {
-    console.error("[Database] Failed to flag comment:", error);
-    throw error;
-  }
+  await db.update(contentModerations).set({ status: 'approved', moderatedBy, moderatedAt: new Date() }).where(eq(contentModerations.id, moderationId));
+  await db.update(comments).set({ approved: 1 }).where(eq(comments.id, item.commentId));
 }
 
-export async function getModerationQueue(): Promise<ContentModeration[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    return await db.select().from(contentModerations)
-      .where(eq(contentModerations.status, 'pending'));
-  } catch (error) {
-    console.error("[Database] Failed to get moderation queue:", error);
-    throw error;
-  }
+export async function rejectModerationItem(moderationId: number, moderatedBy: number) {
+  await db.update(contentModerations).set({ status: 'rejected', moderatedBy, moderatedAt: new Date() }).where(eq(contentModerations.id, moderationId));
 }
 
-export async function approveModerationItem(moderationId: number, moderatedBy: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+export async function getOrCreateUserAnalytics(userId: number) {
+  const existing = await db.select().from(userAnalytics).where(eq(userAnalytics.userId, userId)).limit(1);
+  if (existing.length > 0) return existing[0];
 
-  try {
-    await db.update(contentModerations)
-      .set({ status: 'approved', moderatedBy, moderatedAt: new Date() })
-      .where(eq(contentModerations.id, moderationId));
-  } catch (error) {
-    console.error("[Database] Failed to approve moderation:", error);
-    throw error;
-  }
-}
-
-export async function rejectModerationItem(moderationId: number, moderatedBy: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    await db.update(contentModerations)
-      .set({ status: 'rejected', moderatedBy, moderatedAt: new Date() })
-      .where(eq(contentModerations.id, moderationId));
-  } catch (error) {
-    console.error("[Database] Failed to reject moderation:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// Email Campaign Query Helpers
-// ============================================
-
-export async function createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.insert(emailCampaigns).values(campaign);
-    const created = await db.select().from(emailCampaigns)
-      .where(eq(emailCampaigns.id, (result as any).insertId));
-    return created[0];
-  } catch (error) {
-    console.error("[Database] Failed to create email campaign:", error);
-    throw error;
-  }
-}
-
-export async function getCampaigns(): Promise<EmailCampaign[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    return await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt));
-  } catch (error) {
-    console.error("[Database] Failed to get campaigns:", error);
-    throw error;
-  }
-}
-
-export async function updateCampaignStatus(campaignId: number, status: 'draft' | 'scheduled' | 'sent' | 'failed'): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const updateData: any = { status };
-    if (status === 'sent') {
-      updateData.sentAt = new Date();
-    }
-    await db.update(emailCampaigns).set(updateData).where(eq(emailCampaigns.id, campaignId));
-  } catch (error) {
-    console.error("[Database] Failed to update campaign status:", error);
-    throw error;
-  }
-}
-
-export async function addCampaignRecipient(campaignId: number, userId: number): Promise<CampaignRecipient> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const result = await db.insert(campaignRecipients).values({
-      campaignId,
-      userId,
-    });
-
-    const recipient = await db.select().from(campaignRecipients)
-      .where(eq(campaignRecipients.id, (result as any).insertId));
-    return recipient[0];
-  } catch (error) {
-    console.error("[Database] Failed to add campaign recipient:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// User Analytics Query Helpers
-// ============================================
-
-export async function getOrCreateUserAnalytics(userId: number): Promise<UserAnalytic> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const existing = await db.select().from(userAnalytics)
-      .where(eq(userAnalytics.userId, userId));
-
-    if (existing.length > 0) {
-      return existing[0];
-    }
-
-    const result = await db.insert(userAnalytics).values({ userId });
-    const created = await db.select().from(userAnalytics)
-      .where(eq(userAnalytics.id, (result as any).insertId));
-    return created[0];
-  } catch (error) {
-    console.error("[Database] Failed to get or create user analytics:", error);
-    throw error;
-  }
-}
-
-export async function updateUserAnalytics(userId: number, updates: Partial<InsertUserAnalytic>): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  try {
-    const updateData: any = { ...updates, lastActivityAt: new Date() };
-    await db.update(userAnalytics)
-      .set(updateData)
-      .where(eq(userAnalytics.userId, userId));
-  } catch (error) {
-    console.error("[Database] Failed to update user analytics:", error);
-    throw error;
-  }
-}
-
-
-// ============================================
-// User Notifications Query Helpers
-// ============================================
-export async function createUserNotification(notification: InsertUserNotification): Promise<UserNotification> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const result = await db.insert(userNotifications).values(notification);
-    const created = await db.select().from(userNotifications)
-      .where(eq(userNotifications.id, (result as any).insertId));
-    return created[0];
-  } catch (error) {
-    console.error("[Database] Failed to create user notification:", error);
-    throw error;
-  }
-}
-
-export async function getUserNotifications(userId: number, limit: number = 20): Promise<UserNotification[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    return await db.select().from(userNotifications)
-      .where(eq(userNotifications.userId, userId))
-      .orderBy(desc(userNotifications.createdAt))
-      .limit(limit);
-  } catch (error) {
-    console.error("[Database] Failed to get user notifications:", error);
-    throw error;
-  }
-}
-
-export async function getUnreadNotificationCount(userId: number): Promise<number> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const result = await db.select().from(userNotifications)
-      .where(and(eq(userNotifications.userId, userId), eq(userNotifications.isRead, 0)));
-    return result.length;
-  } catch (error) {
-    console.error("[Database] Failed to get unread notification count:", error);
-    throw error;
-  }
-}
-
-export async function markNotificationAsRead(notificationId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    await db.update(userNotifications)
-      .set({ isRead: 1, readAt: new Date() })
-      .where(eq(userNotifications.id, notificationId));
-  } catch (error) {
-    console.error("[Database] Failed to mark notification as read:", error);
-    throw error;
-  }
-}
-
-export async function markAllNotificationsAsRead(userId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    await db.update(userNotifications)
-      .set({ isRead: 1, readAt: new Date() })
-      .where(eq(userNotifications.userId, userId));
-  } catch (error) {
-    console.error("[Database] Failed to mark all notifications as read:", error);
-    throw error;
-  }
-}
-
-export async function deleteUserNotification(notificationId: number): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    await db.delete(userNotifications)
-      .where(eq(userNotifications.id, notificationId));
-  } catch (error) {
-    console.error("[Database] Failed to delete user notification:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// User Activity Query Helpers
-// ============================================
-export async function logUserActivity(activity: InsertUserActivity): Promise<UserActivity> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const result = await db.insert(userActivity).values(activity);
-    const created = await db.select().from(userActivity)
-      .where(eq(userActivity.id, (result as any).insertId));
-    return created[0];
-  } catch (error) {
-    console.error("[Database] Failed to log user activity:", error);
-    throw error;
-  }
-}
-
-export async function getUserActivity(userId: number, limit: number = 50): Promise<UserActivity[]> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    return await db.select().from(userActivity)
-      .where(eq(userActivity.userId, userId))
-      .orderBy(desc(userActivity.createdAt))
-      .limit(limit);
-  } catch (error) {
-    console.error("[Database] Failed to get user activity:", error);
-    throw error;
-  }
-}
-
-export async function getUserActivityStats(userId: number): Promise<{ views: number; comments: number; uploads: number }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const activities = await db.select().from(userActivity)
-      .where(eq(userActivity.userId, userId));
-
-    const stats = {
-      views: activities.filter(a => a.activityType === 'view_article').length,
-      comments: activities.filter(a => a.activityType === 'create_comment').length,
-      uploads: activities.filter(a => a.activityType === 'upload_file').length,
-    };
-    return stats;
-  } catch (error) {
-    console.error("[Database] Failed to get user activity stats:", error);
-    throw error;
-  }
-}
-
-// ============================================
-// Notification Preferences Query Helpers
-// ============================================
-export async function getOrCreateNotificationPreferences(userId: number): Promise<NotificationPreference> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const existing = await db.select().from(notificationPreferences)
-      .where(eq(notificationPreferences.userId, userId));
-    if (existing.length > 0) {
-      return existing[0];
-    }
-    const result = await db.insert(notificationPreferences).values({ userId });
-    const created = await db.select().from(notificationPreferences)
-      .where(eq(notificationPreferences.id, (result as any).insertId));
-    return created[0];
-  } catch (error) {
-    console.error("[Database] Failed to get or create notification preferences:", error);
-    throw error;
-  }
-}
-
-export async function updateNotificationPreferences(userId: number, preferences: Partial<InsertNotificationPreference>): Promise<void> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  try {
-    const existing = await db.select().from(notificationPreferences)
-      .where(eq(notificationPreferences.userId, userId));
-
-    if (existing.length === 0) {
-      await db.insert(notificationPreferences).values({ userId, ...preferences });
-    } else {
-      await db.update(notificationPreferences)
-        .set(preferences)
-        .where(eq(notificationPreferences.userId, userId));
-    }
-  } catch (error) {
-    console.error("[Database] Failed to update notification preferences:", error);
-    throw error;
-  }
+  await db.insert(userAnalytics).values({ userId });
+  return await db.select().from(userAnalytics).where(eq(userAnalytics.userId, userId)).limit(1).then(r => r[0]);
 }

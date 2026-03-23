@@ -31,6 +31,8 @@ import ArticleManagement from "./pages/ArticleManagement";
 import NavigationEnhanced from "@/components/NavigationEnhanced";
 import Breadcrumb from "@/components/Breadcrumb";
 import Footer from "./components/Footer";
+import AdminRouteGuard from "./components/AdminRouteGuard";
+import AdminContentStudio from "./pages/AdminContentStudio";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -51,14 +53,44 @@ function Router() {
       <Route path="/dashboard-user" component={UserDashboard} />
       <Route path="/profile" component={UserProfile} />
       <Route path="/email-preferences" component={EmailPreferences} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/users" component={UserManagement} />
-      <Route path="/admin/moderation" component={ContentModeration} />
-      <Route path="/admin/campaigns" component={EmailCampaigns} />
-      <Route path="/admin/analytics" component={AnalyticsDashboard} />
-      <Route path="/admin/content" component={ContentManagement} />      <Route path="/analytics" component={AnalyticsDashboard} />
+      <Route path="/admin">
+        <AdminRouteGuard>
+          <AdminDashboard />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/users">
+        <AdminRouteGuard>
+          <UserManagement />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/moderation">
+        <AdminRouteGuard>
+          <ContentModeration />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/campaigns">
+        <AdminRouteGuard>
+          <EmailCampaigns />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/analytics">
+        <AdminRouteGuard>
+          <AnalyticsDashboard />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/content">
+        <AdminRouteGuard>
+          <ContentManagement />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/member-dashboard" component={MemberDashboard} />
-      <Route path="/admin/articles" component={ArticleManagement} />
+      <Route path="/admin/articles">
+        <AdminRouteGuard>
+          <ArticleManagement />
+        </AdminRouteGuard>
+      </Route>
+      <Route path="/admin/content-studio" component={AdminContentStudio} />
       <Route path="/*" component={NotFound} />   </Switch>
   );
 }

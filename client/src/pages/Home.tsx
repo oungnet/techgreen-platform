@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Users, TrendingUp, Leaf, Briefcase, BookOpen, BarChart3, CheckCircle, Zap, Globe } from "lucide-react";
-import TestComponent from "@/components/TestComponent";
+
 
 export default function Home() {
   let { user, loading, error, isAuthenticated, logout } = useAuth();
@@ -99,7 +99,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-      <TestComponent />
+      
 
       {/* Benefits Section */}
       <section className="py-16 bg-gray-50">

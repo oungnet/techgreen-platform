@@ -248,8 +248,12 @@ export default function Learning() {
 
           {!isLoading && !error && (
             <div className="space-y-4">
+              <div className="grid gap-4 xl:grid-cols-2">
               {items.map((article) => (
-                <Card key={article.id} className="border-slate-200 p-5">
+                <Card
+                  key={article.id}
+                  className="border-slate-200 bg-gradient-to-br from-white via-white to-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                       {article.category}
@@ -282,6 +286,7 @@ export default function Learning() {
                   </div>
                 </Card>
               ))}
+              </div>
 
               {items.length === 0 && (
                 <Card className="border-slate-200 p-8 text-center">

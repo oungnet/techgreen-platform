@@ -1,89 +1,190 @@
+import { FormEvent, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 
+type LocalAuthMode = "login" | "register";
+
 export default function Login() {
   const { isAuthenticated } = useAuth();
+  const [mode, setMode] = useState<LocalAuthMode>("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const submitLocalAuth = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const endpoint =
+        mode === "register"
+          ? "/api/auth/local/register"
+          : "/api/auth/local/login";
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Authentication failed");
+      }
+
+      if (mode === "register") {
+        setMessage("สมัครสมาชิกสำเร็จ กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
+      } else {
+        setMessage("เข้าสู่ระบบสำเร็จ กำลังพาไปหน้าโปรไฟล์...");
+        window.location.href = "/profile";
+      }
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "ไม่สามารถดำเนินการได้"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-md mx-auto">
-            <Card className="p-8 text-center">
-              <div className="text-6xl mb-4">✅</div>
-              <h1 className="text-3xl font-bold text-green-600 mb-2">คุณได้เข้าสู่ระบบแล้ว!</h1>
-              <p className="text-gray-600 mb-6">ยินดีต้อนรับเข้าสู่ TechGreen Platform</p>
-              <Button className="bg-green-500 hover:bg-green-600 w-full" onClick={() => window.location.href = "/"}>
-                กลับไปหน้าแรก
-              </Button>
-            </Card>
-          </div>
+      <div className="min-h-screen bg-slate-50 py-12">
+        <div className="container">
+          <Card className="mx-auto max-w-xl rounded-2xl border-slate-200 p-8 text-center">
+            <h1 className="text-3xl font-bold text-slate-900">คุณเข้าสู่ระบบแล้ว</h1>
+            <p className="mt-3 text-slate-600">ยินดีต้อนรับสู่ TechGreen Platform</p>
+            <Button className="mt-6" onClick={() => (window.location.href = "/profile")}>
+              ไปยังหน้าโปรไฟล์
+            </Button>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center py-12">
-      <div className="container mx-auto px-4">
-        <div className="max-w-md mx-auto">
-          <Card className="p-8">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">🔐</div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">เข้าสู่ระบบ</h1>
-              <p className="text-gray-600">ยินดีต้อนรับกลับมายังแพลตฟอร์ม TechGreen</p>
-            </div>
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_#e6f4ff,_#f8fafc_50%,_#eef2ff)] py-10">
+      <div className="container">
+        <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="rounded-2xl border-slate-200 bg-white/90 p-7 shadow-sm">
+            <p className="text-sm font-medium text-emerald-700">Ban Non-Yai Smarter</p>
+            <h1 className="mt-2 text-3xl font-bold text-slate-900">ระบบสมาชิกอัจฉริยะ</h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              รองรับการเข้าสู่ระบบผ่าน Email/Password และ Social Login สำหรับชุมชนดิจิทัลที่ปลอดภัย
+              พร้อมโครงสร้างสิทธิ์ Admin/User
+            </p>
 
-            <div className="space-y-6">
-              {/* OAuth Login */}
-              <a href={getLoginUrl()}>
-                <Button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 font-bold text-lg">
-                  <span className="mr-2">🔐</span> เข้าสู่ระบบด้วย Manus
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <a href="/api/auth/google">
+                <Button variant="outline" className="w-full border-slate-300">
+                  Google
                 </Button>
               </a>
-
-              {/* Info Box */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-gray-700">
-                  <strong>💡 วิธีการ:</strong> คลิกปุ่มด้านบนเพื่อเข้าสู่ระบบด้วยบัญชี Manus OAuth
-                </p>
-              </div>
-
-              {/* Register Link */}
-              <div className="text-center">
-                <p className="text-gray-600">
-                  ยังไม่มีบัญชี?{" "}
-                  <a href="/register" className="text-green-600 hover:underline font-bold">
-                    สร้างบัญชีใหม่
-                  </a>
-                </p>
-              </div>
-
-              {/* Features */}
-              <div className="mt-8 space-y-3 pt-8 border-t border-gray-200">
-                <h3 className="font-bold text-slate-900 mb-4">ประโยชน์ของการสมัครสมาชิก:</h3>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 font-bold">✓</span>
-                    <span>เข้าถึงข้อมูลสิทธิประโยชน์ทั้งหมด</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 font-bold">✓</span>
-                    <span>บันทึกไฟล์และเอกสารส่วนตัว</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 font-bold">✓</span>
-                    <span>รับการแจ้งเตือนข้อมูลใหม่</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="text-green-500 font-bold">✓</span>
-                    <span>ติดตามสถานะการสมัครสิทธิ์</span>
-                  </div>
-                </div>
-              </div>
+              <a href="/api/auth/facebook">
+                <Button variant="outline" className="w-full border-slate-300">
+                  Facebook
+                </Button>
+              </a>
+              <a href={getLoginUrl()}>
+                <Button variant="outline" className="w-full border-slate-300">
+                  Manus OAuth
+                </Button>
+              </a>
             </div>
+          </Card>
+
+          <Card className="rounded-2xl border-slate-200 bg-white p-7 shadow-sm">
+            <div className="mb-4 flex gap-2 rounded-xl bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
+                  mode === "login" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+                }`}
+              >
+                เข้าสู่ระบบ
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("register")}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium ${
+                  mode === "register" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600"
+                }`}
+              >
+                สมัครสมาชิก
+              </button>
+            </div>
+
+            <form onSubmit={submitLocalAuth} className="space-y-4">
+              {mode === "register" && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">ชื่อผู้ใช้</label>
+                  <Input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="เช่น Ban Non-Yai Member"
+                    required
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">อีเมล</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">รหัสผ่าน</label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="อย่างน้อย 8 ตัวอักษร"
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "กำลังดำเนินการ..." : mode === "register" ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
+              </Button>
+            </form>
+
+            {message && (
+              <Alert className="mt-4 border-emerald-200 bg-emerald-50">
+                <AlertTitle>สำเร็จ</AlertTitle>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            )}
+
+            {error && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTitle>เกิดข้อผิดพลาด</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
           </Card>
         </div>
       </div>

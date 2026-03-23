@@ -19,23 +19,23 @@ export default function Footer() {
             <h3 className="text-lg font-bold mb-4 text-green-400">ลิงก์ด่วน</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/disability-benefits">
-                  <a className="hover:text-green-400 transition">สิทธิประโยชน์ผู้พิการ</a>
+                <Link href="/disability-benefits" className="hover:text-green-400 transition">
+                  สิทธิประโยชน์ผู้พิการ
                 </Link>
               </li>
               <li>
-                <Link href="/tax-benefits">
-                  <a className="hover:text-green-400 transition">สิทธิลดหย่อนภาษี</a>
+                <Link href="/tax-benefits" className="hover:text-green-400 transition">
+                  สิทธิลดหย่อนภาษี
                 </Link>
               </li>
               <li>
-                <Link href="/resources">
-                  <a className="hover:text-green-400 transition">ทรัพยากร</a>
+                <Link href="/resources" className="hover:text-green-400 transition">
+                  ทรัพยากร
                 </Link>
               </li>
               <li>
-                <Link href="/innovation">
-                  <a className="hover:text-green-400 transition">นวัตกรรม</a>
+                <Link href="/innovation" className="hover:text-green-400 transition">
+                  นวัตกรรม
                 </Link>
               </li>
             </ul>
@@ -46,18 +46,18 @@ export default function Footer() {
             <h3 className="text-lg font-bold mb-4 text-green-400">เพิ่มเติม</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/partnership">
-                  <a className="hover:text-green-400 transition">ความร่วมมือ</a>
+                <Link href="/partnership" className="hover:text-green-400 transition">
+                  ความร่วมมือ
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard">
-                  <a className="hover:text-green-400 transition">แดชบอร์ด</a>
+                <Link href="/dashboard" className="hover:text-green-400 transition">
+                  แดชบอร์ด
                 </Link>
               </li>
               <li>
-                <Link href="/learning">
-                  <a className="hover:text-green-400 transition">เรียนรู้</a>
+                <Link href="/learning" className="hover:text-green-400 transition">
+                  เรียนรู้
                 </Link>
               </li>
             </ul>
