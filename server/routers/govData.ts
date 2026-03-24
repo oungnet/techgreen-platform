@@ -13,6 +13,7 @@ export const govDataRouter = router({
         .object({
           start: z.number().int().min(0).default(0),
           limit: z.number().int().min(1).max(20).default(6),
+          query: z.string().max(100).optional(),
         })
         .optional()
     )
@@ -20,6 +21,7 @@ export const govDataRouter = router({
       return fetchEnergyGroupDatasets({
         start: input?.start ?? 0,
         limit: input?.limit ?? 6,
+        query: input?.query ?? "",
       });
     }),
 });

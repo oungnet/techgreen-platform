@@ -1,6 +1,11 @@
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
+
+const PAGE_SIZE = 6;
 
 function SampleTable({ rows }: { rows: Record<string, unknown>[] }) {
   if (!rows.length) {
@@ -37,8 +42,58 @@ function SampleTable({ rows }: { rows: Record<string, unknown>[] }) {
   );
 }
 
+function toCsv(rows: Record<string, unknown>[]) {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const lines = [headers.map(escape).join(",")];
+  for (const row of rows) {
+    lines.push(headers.map((header) => escape(row[header])).join(","));
+  }
+  return lines.join("\n");
+}
+
+function downloadCsv(fileName: string, rows: Record<string, unknown>[]) {
+  const csv = toCsv(rows);
+  if (!csv) return;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function EnergyDataPage() {
-  const { data, isLoading, error } = trpc.govData.energyGroup.useQuery({ start: 0, limit: 6 });
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery]);
+
+  const input = useMemo(
+    () => ({
+      start: (page - 1) * PAGE_SIZE,
+      limit: PAGE_SIZE,
+      query: debouncedQuery || undefined,
+    }),
+    [debouncedQuery, page]
+  );
+
+  const { data, isLoading, error, isFetching } = trpc.govData.energyGroup.useQuery(input);
+
+  const hasPrev = page > 1;
+  const hasNext = Boolean(data && data.start + data.datasets.length < data.total);
 
   if (isLoading) {
     return (
@@ -68,18 +123,38 @@ export default function EnergyDataPage() {
           <p className="text-sm font-medium text-emerald-700">data.go.th /group/energy</p>
           <h1 className="text-2xl font-bold text-slate-900">Energy Open Data Explorer</h1>
           <p className="mt-2 text-sm text-slate-600">
-            แสดงรายการชุดข้อมูลกลุ่มพลังงานพร้อมตัวอย่างข้อมูลจริงจาก resource ของแต่ละชุดข้อมูล
+            หน้าหลักสำหรับบริหารและตรวจสอบชุดข้อมูลพลังงานที่สำคัญ พร้อม sample data ใช้งานจริง
           </p>
           <p className="mt-2 text-xs text-slate-500">
             total datasets: {data.total.toLocaleString()} | fetched: {new Date(data.fetchedAt).toLocaleString("th-TH")} | cache: {data.cached ? "HIT" : "MISS"}
           </p>
+
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ค้นหาชุดข้อมูลพลังงาน เช่น ไฟฟ้า น้ำมัน พยากรณ์"
+              className="md:max-w-lg"
+            />
+            <div className="flex items-center gap-2">
+              <Button variant="outline" disabled={!hasPrev || isFetching} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+                ก่อนหน้า
+              </Button>
+              <span className="text-sm text-slate-600">หน้า {page}</span>
+              <Button variant="outline" disabled={!hasNext || isFetching} onClick={() => setPage((prev) => prev + 1)}>
+                ถัดไป
+              </Button>
+            </div>
+          </div>
         </Card>
 
         <div className="space-y-4">
           {data.datasets.map((dataset) => (
             <Card key={dataset.id} className="space-y-4 rounded-2xl border-slate-200 p-5">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">{dataset.title}</h2>
+                <a href={dataset.datasetUrl} target="_blank" rel="noreferrer" className="text-lg font-semibold text-slate-900 hover:text-emerald-700">
+                  {dataset.title}
+                </a>
                 <p className="mt-1 text-xs text-slate-500">
                   org: {dataset.organization} | resources: {dataset.resourceCount} | updated: {dataset.metadataModified || "-"}
                 </p>
@@ -87,7 +162,7 @@ export default function EnergyDataPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {dataset.resources.slice(0, 4).map((resource) => (
+                {dataset.resources.slice(0, 5).map((resource) => (
                   <a
                     key={resource.id}
                     href={resource.url}
@@ -101,11 +176,25 @@ export default function EnergyDataPage() {
               </div>
 
               <div>
-                <p className="mb-2 text-sm font-semibold text-slate-700">ตัวอย่างข้อมูล</p>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-700">ตัวอย่างข้อมูล</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!dataset.sampleRows.length}
+                    onClick={() => downloadCsv(`${dataset.name || dataset.id}-sample.csv`, dataset.sampleRows)}
+                  >
+                    Export CSV
+                  </Button>
+                </div>
                 <SampleTable rows={dataset.sampleRows} />
               </div>
             </Card>
           ))}
+
+          {data.datasets.length === 0 && (
+            <Card className="rounded-2xl border-slate-200 p-6 text-center text-slate-600">ไม่พบชุดข้อมูลที่ตรงกับคำค้นหา</Card>
+          )}
         </div>
       </div>
     </div>

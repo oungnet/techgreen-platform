@@ -275,6 +275,7 @@ export type EnergyDataset = {
   id: string;
   name: string;
   title: string;
+  datasetUrl: string;
   notes: string;
   organization: string;
   metadataModified: string;
@@ -290,6 +291,7 @@ export type EnergyGroupPayload = {
   total: number;
   start: number;
   limit: number;
+  query: string;
   datasets: EnergyDataset[];
 };
 
@@ -383,10 +385,15 @@ async function fetchResourceSample(url: string, format: string): Promise<Record<
   }
 }
 
-export async function fetchEnergyGroupDatasets(input: { start?: number; limit?: number }): Promise<EnergyGroupPayload> {
+export async function fetchEnergyGroupDatasets(input: {
+  start?: number;
+  limit?: number;
+  query?: string;
+}): Promise<EnergyGroupPayload> {
   const start = Math.max(0, input.start ?? 0);
   const limit = Math.min(20, Math.max(1, input.limit ?? 6));
-  const cacheKey = `energy:${start}:${limit}`;
+  const query = (input.query ?? "").trim();
+  const cacheKey = `energy:${start}:${limit}:${query.toLowerCase()}`;
   const now = Date.now();
   const cached = govCache.get(cacheKey);
 
@@ -402,6 +409,7 @@ export async function fetchEnergyGroupDatasets(input: { start?: number; limit?: 
       fq: "groups:energy",
       rows: limit,
       start,
+      q: query || undefined,
     },
     timeout: 15000,
   });
@@ -436,6 +444,7 @@ export async function fetchEnergyGroupDatasets(input: { start?: number; limit?: 
       id: String(dataset?.id ?? ""),
       name: String(dataset?.name ?? ""),
       title: String(dataset?.title ?? dataset?.name ?? "Untitled dataset"),
+      datasetUrl: `https://data.go.th/dataset/${String(dataset?.name ?? "")}`,
       notes: String(dataset?.notes ?? ""),
       organization: String(dataset?.organization?.title ?? dataset?.organization?.name ?? "-"),
       metadataModified: String(dataset?.metadata_modified ?? ""),
@@ -452,6 +461,7 @@ export async function fetchEnergyGroupDatasets(input: { start?: number; limit?: 
     total: Number(result?.count ?? datasets.length),
     start,
     limit,
+    query,
     datasets,
   };
 

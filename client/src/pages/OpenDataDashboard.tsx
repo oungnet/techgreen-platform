@@ -53,6 +53,15 @@ export default function OpenDataDashboard() {
   const { data, isLoading, error } = trpc.govData.dashboard.useQuery(undefined, {
     refetchInterval: 1000 * 60 * 60,
   });
+  const {
+    data: energyFallback,
+    isLoading: isEnergyLoading,
+  } = trpc.govData.energyGroup.useQuery(
+    { start: 0, limit: 3 },
+    {
+      enabled: Boolean(error),
+    }
+  );
 
   if (isLoading) {
     return (
@@ -65,13 +74,42 @@ export default function OpenDataDashboard() {
   }
 
   if (error || !data) {
+    if (isEnergyLoading) {
+      return (
+        <div className="container space-y-4 py-8">
+          <Skeleton className="h-14 w-72" />
+          <Skeleton className="h-44 w-full" />
+          <Skeleton className="h-44 w-full" />
+        </div>
+      );
+    }
+
     return (
       <div className="container py-8">
-        <Card className="space-y-2 p-6 text-red-700">
-          <h2 className="text-lg font-semibold">ไม่สามารถดึงข้อมูล data.go.th ได้</h2>
-          <p className="text-sm">{error?.message ?? "unknown error"}</p>
-          <p className="text-xs text-slate-600">ตรวจสอบ DATA_GO_TH_API_KEY และสิทธิ์ใช้งานบริการ opend-search ของ token นี้</p>
-        </Card>
+        <div className="space-y-4">
+          <Card className="space-y-2 p-6 text-red-700">
+            <h2 className="text-lg font-semibold">ไม่สามารถดึง dashboard ชุดเดิมได้</h2>
+            <p className="text-sm">{error?.message ?? "unknown error"}</p>
+            <p className="text-xs text-slate-600">ระบบสลับไปใช้หน้า Energy สำรองเพื่อให้ใช้งานข้อมูลสำคัญต่อเนื่อง</p>
+            <a href="/open-data/energy" className="inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+              ไปหน้า Energy Open Data Explorer →
+            </a>
+          </Card>
+
+          {energyFallback && (
+            <>
+              {energyFallback.datasets.map((dataset) => (
+                <Card key={dataset.id} className="space-y-2 p-5">
+                  <h3 className="text-base font-semibold text-slate-900">{dataset.title}</h3>
+                  <p className="text-xs text-slate-500">
+                    org: {dataset.organization} | resources: {dataset.resourceCount}
+                  </p>
+                  <PreviewTable rows={dataset.sampleRows} />
+                </Card>
+              ))}
+            </>
+          )}
+        </div>
       </div>
     );
   }

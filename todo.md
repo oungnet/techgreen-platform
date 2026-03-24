@@ -1,537 +1,131 @@
-# TechGreen Platform 2025 - TODO
-
-## Phase 1: File Storage System ✅ COMPLETED
-- [x] Database schema, migration, query helpers
-- [x] tRPC router with upload, list, delete, update, share procedures
-- [x] FileManager component
-- [x] Unit tests (15/15 passed)
-
-## Phase 2: Platform Enhancement ✅ COMPLETED
-- [x] Database schema for articles, comments, ratings, email subscriptions
-- [x] Query helpers for all new tables
-- [x] tRPC routers: articles, users, emailSubscriptions
-- [x] SearchArticles, ArticleComments, ArticleRating components
-- [x] Learning, UserProfile, EmailPreferences pages
-- [x] Unit tests (23/23 passed)
-
-## Phase 3: Admin Dashboard ✅ COMPLETED
-- [x] Admin router with article and comment management
-- [x] AdminArticlesTable, AdminCommentsTable components
-- [x] AdminDashboard page with statistics
-- [x] Unit tests (13/15 passed)
-
-## Phase 4: Advanced Admin Features ✅ COMPLETED
-
-### Database & Backend
-- [x] contentModeration, emailCampaigns, campaignRecipients, userAnalytics tables
-- [x] Query helpers for analytics, user management, moderation, campaigns
-- [x] Analytics router with statistics procedures
-- [x] Moderation router with approval/rejection procedures
-- [x] Campaigns router with campaign management procedures
-
-### Frontend - Admin Pages
-- [x] AnalyticsDashboard page (/admin/analytics) with Chart.js
-- [x] ContentModeration page (/admin/moderation)
-- [x] EmailCampaigns page (/admin/campaigns)
-- [x] UserManagement page (/admin/users)
-- [x] All routes added to App.tsx
-
-### Frontend - Homepage Redesign
-- [x] New Hero section with improved visuals
-- [x] Benefits section highlighting platform advantages
-- [x] Statistics section with key metrics
-- [x] Features section with organized cards
-- [x] CTA section with clear call-to-action
-
-## Summary of Deliverables
-
-### Database
-- 11 tables total (users, files, fileShares, articles, comments, ratings, emailSubscriptions, emailNotifications, contentModerations, emailCampaigns, campaignRecipients, userAnalytics)
-- 3 database migrations executed successfully
-
-### Backend APIs
-- 10 tRPC routers (auth, system, files, articles, users, emailSubscriptions, admin, analytics, moderation, campaigns)
-- 40+ procedures with full type safety and validation
-
-### Frontend Components
-- 20+ reusable components
-- 15 pages (Home, DisabilityBenefits, TaxBenefits, Resources, Innovation, Partnership, Dashboard, Learning, Register, Login, ApplyBenefits, Contact, UserDashboard, UserProfile, EmailPreferences, AdminDashboard, AnalyticsDashboard, ContentModeration, EmailCampaigns, UserManagement)
-
-### Testing
-- 51+ unit tests across all features
-- All critical paths covered
-
-### Features Implemented
-✅ File Storage System with S3 integration
-✅ Article Management with full-text search
-✅ Comment System with approval workflow
-✅ Rating System (5-star)
-✅ Email Subscriptions
-✅ Admin Dashboard with statistics
-✅ Content Moderation
-✅ Email Campaigns
-✅ User Management
-✅ Analytics Dashboard with Chart.js
-✅ Improved Homepage Design
-✅ User Profile Management
-✅ File Sharing with Access Control
-
-## Next Steps (Optional)
-- [ ] Implement actual email sending service (SMTP/SendGrid)
-- [ ] Add user search and filtering to User Management
-- [ ] Implement role-based access control for all pages
-- [ ] Add more analytics charts and metrics
-- [ ] Implement notification system for real-time updates
-- [ ] Add mobile app version
-- [ ] Setup CI/CD pipeline
-- [ ] Performance optimization and caching
-
-## Phase 5: Member System & Navigation ✅ COMPLETED
-
-### Navigation Menu
-- [x] Create improved Navigation component with user dropdown
-- [x] Add admin menu items (Analytics, Moderation, Campaigns, Users)
-- [x] Add user menu items (Profile, Dashboard, Email Preferences)
-- [x] Add Login/Register buttons for unauthenticated users
-- [x] Implement mobile responsive menu
-
-### Member System
-- [x] Update Register page with Manus OAuth integration
-- [x] Update Login page with Manus OAuth
-- [x] Add error handling and validation
-- [x] Display user profile in navigation dropdown
-- [x] Add logout functionality
-
-### Features
-- [x] User authentication with Manus OAuth
-- [x] User profile display in navigation
-- [x] Admin menu visibility based on user role
-- [x] Mobile responsive navigation
-- [x] Improved Register/Login pages
-
-
-## Phase 6: Member System & Homepage Enhancement
-
-### Navigation Menu Improvements
-- [x] Enhance Navigation styling with better visual hierarchy
-- [x] Add dropdown menus for main categories
-- [x] Improve mobile menu responsiveness
-- [x] Add search functionality to navigation
-- [x] Implement sticky header on scroll
-
-### Homepage Menu Structure
-- [ ] Add main navigation menu items to homepage
-- [ ] Create category menu with subcategories
-- [ ] Add quick links section
-- [ ] Improve CTA buttons visibility
-- [ ] Add breadcrumb navigation
-
-### Member Profile Enhancement
-- [ ] Improve UserProfile page design
-- [ ] Add profile picture upload
-- [ ] Add bio and personal information editing
-- [ ] Add preferences section
-- [ ] Add activity history
-
-### Member Dashboard
-- [ ] Create comprehensive member dashboard
-- [ ] Add quick stats (files, articles read, comments)
-- [ ] Add recent activities
-- [ ] Add saved articles/favorites
-- [ ] Add member notifications center
-
-### Additional Features
-- [ ] Add member notification system
-- [ ] Add member preferences/settings
-- [ ] Add member help/support section
-- [ ] Add member feedback form
-- [ ] Add member onboarding tutorial
-
-
-## Phase 7: Member Dashboard & Notifications
-
-### Database & Backend
-- [ ] Create userNotifications table for personal notifications
-- [ ] Create userActivity table for tracking user actions
-- [ ] Add query helpers for dashboard statistics
-- [ ] Create dashboard router with statistics procedures
-- [ ] Create notifications router for notification management
-
-### Member Dashboard UI
-- [ ] Create MemberDashboard page with activity overview
-- [ ] Add statistics cards (articles read, comments, files uploaded)
-- [ ] Add activity chart showing user engagement over time
-- [ ] Add recent activities list
-- [ ] Add saved articles/favorites section
-- [ ] Add personalized recommendations
-
-### Notification System
-- [ ] Create NotificationCenter component
-- [ ] Add notification display in navigation
-- [ ] Implement notification badge counter
-- [ ] Add notification settings page
-- [ ] Create notification preferences UI
-- [ ] Add notification types (new article, comment approved, etc.)
-
-### Features
-- [ ] Track user activity (articles read, comments made, files uploaded)
-- [ ] Generate activity statistics
-- [ ] Create personal notifications
-- [ ] Display notification history
-- [ ] Allow users to manage notification preferences
-- [ ] Add notification dismissal functionality
-
-
-## Phase 7: Member Dashboard & Notifications
-
-- [x] Database schema: Add notification tables (userNotifications, userActivity, notificationPreferences)
-- [x] Database migration: Execute SQL to create notification tables
-- [x] Query helpers: Add notification and activity functions to server/db.ts
-- [x] tRPC router: Create dashboard router with 10 procedures
-- [x] Register dashboard router in appRouter
-- [x] MemberDashboard page: Display activity stats and notifications
-- [x] Dashboard components: Statistics cards, notifications list, quick actions
-- [x] Create unit tests for dashboard features (5 tests pass)
-- [x] Run all tests and verify passing (33/40 tests pass)
-- [ ] Create checkpoint
-
-
-
-## Phase 8: Content Management & Analytics Dashboard
-
-### Content Management System
-- [ ] Backend: Extend article router with publish/unpublish procedures
-- [ ] Backend: Create email notification procedures for article updates
-- [ ] ContentManagement page: Article list with CRUD operations
-- [ ] ContentManagement page: Article editor with rich text support
-- [ ] ContentManagement page: Bulk actions (publish, unpublish, delete)
-- [ ] Email Notification: Setup email service integration
-- [ ] Email Notification: Send emails on article publish/update
-
-### Member Analytics Dashboard
-- [ ] Backend: Create analytics procedures for member statistics
-- [ ] MemberAnalytics page: Member statistics (total, active, new this month)
-- [ ] MemberAnalytics page: Article engagement charts (views, comments, ratings)
-- [ ] MemberAnalytics page: User activity timeline and trends
-- [ ] MemberAnalytics page: Category performance analysis
-- [ ] MemberAnalytics page: Export reports functionality
-
-### Testing & Deployment
-- [ ] Create unit tests for content management and analytics
-- [ ] Run all tests and verify passing
-- [ ] Create checkpoint
-
-
-## Phase 8: Testing & Bug Fixes - COMPLETED
-
-### Content Management Testing
-- [x] Test add article functionality - PASSED
-- [x] Test edit article functionality - PASSED
-- [x] Test delete article functionality - PASSED
-- [x] Test article list display - PASSED
-- [x] Test form validation - PASSED
-
-### Member Analytics Testing
-- [x] Test statistics cards display - PASSED
-- [x] Test line chart rendering - PASSED
-- [x] Test bar chart rendering - PASSED
-- [x] Test pie chart rendering - PASSED
-- [x] Test responsive layout - PASSED
-
-### Bug Fixes
-- [x] Checked nested anchor tag errors in Navigation - NO ISSUES FOUND
-- [x] Checked nested anchor tag errors in Home page - NO ISSUES FOUND
-- [x] Checked nested anchor tag errors in other components - NO ISSUES FOUND
-- [x] Verified all links work correctly - ALL WORKING
-- [x] Verified no console errors - NO ERRORS
-
-### Unit Tests
-- [x] Reviewed existing tests for ContentManagement features
-- [x] Reviewed existing tests for MemberAnalytics features
-- [x] Verified article CRUD operations work correctly
-- [x] Run all tests - 34/35 PASSING (97%)
-- [x] Pre-existing test failure identified (duplicate slug issue, not blocking)
-
-
-## Phase 9: Complete Authentication & Global State System - COMPLETED
-
-### 1. Authentication Flow
-- [x] Verify Manus Auth flow implementation - VERIFIED
-- [x] Test login/logout functionality - WORKING
-- [x] Verify session persistence - WORKING
-- [x] Test auth redirects on protected routes - WORKING
-- [x] Verify auth errors handling - WORKING
-
-### 2. Global State Management
-- [x] Create Zustand store for user state - CREATED
-- [x] Implement setUser action - IMPLEMENTED
-- [x] Implement logout action - IMPLEMENTED
-- [x] Add isAuthenticated state - IMPLEMENTED
-- [x] Integrate store with useAuth hook - INTEGRATED
-
-### 3. Dashboard with Real Data
-- [x] Fetch total users from database - IMPLEMENTED
-- [x] Fetch total articles from database - IMPLEMENTED
-- [x] Fetch recent activity from database - IMPLEMENTED
-- [x] Display stats on dashboard cards - WORKING
-- [x] Add real-time data refresh - WORKING
-
-### 4. Articles CRUD Verification
-- [x] Verify create article functionality - VERIFIED
-- [x] Verify read/list articles functionality - VERIFIED
-- [x] Verify update article functionality - VERIFIED
-- [x] Verify delete article functionality - VERIFIED
-- [x] Test all CRUD operations end-to-end - PASSED
-
-### 5. Admin Panel Implementation
-- [x] Create /admin route - CREATED
-- [x] List all users with name, email, role - IMPLEMENTED
-- [x] Implement role update functionality (user/admin) - IMPLEMENTED
-- [x] Add article management (edit/delete) - IMPLEMENTED
-- [x] Add user management features - IMPLEMENTED
-
-### 6. Role-Based Access Control
-- [x] Restrict /admin to admin users only - IMPLEMENTED
-- [x] Restrict /dashboard to authenticated users - IMPLEMENTED
-- [x] Add role checks in procedures - IMPLEMENTED
-- [x] Add frontend route protection - IMPLEMENTED
-- [x] Test access control on all routes - PASSED
-
-### 7. Fix Nested Anchor Tags
-- [x] Remove nested <a> tags from Navigation - NO ISSUES FOUND
-- [x] Remove nested <a> tags from Home page - NO ISSUES FOUND
-- [x] Remove nested <a> tags from other components - NO ISSUES FOUND
-- [x] Test all navigation links - WORKING
-- [x] Verify no console errors - NO ERRORS
-
-### 8. Routing Verification
-- [x] Test / route (home page) - WORKING
-- [x] Test /dashboard route - WORKING
-- [x] Test /articles route - WORKING
-- [x] Test /admin route - WORKING
-- [x] Test /login route - WORKING
-- [x] Test route persistence on page refresh - WORKING
-- [x] Test redirect on unauthenticated access - WORKING
-
-### 9. Comprehensive Testing
-- [x] Run all unit tests - 34/35 PASSING (97%)
-- [x] Test authentication flow in browser - PASSED
-- [x] Test dashboard with real data - PASSED
-- [x] Test articles CRUD - PASSED
-- [x] Test admin panel - PASSED
-- [x] Test role-based access - PASSED
-- [x] Verify no errors on deployed site - VERIFIED
-
-### 10. Final Verification & Deployment
-- [x] Verify all features work correctly - VERIFIED
-- [x] Run final test suite - 34/35 PASSING
-- [x] Create checkpoint - READY
-- [x] Verify deployment - READY
-- [x] Test on live domain - READY
-
-
-## Phase 10: User Profile Page with Activity - COMPLETED
-
-### tRPC Procedures
-- [x] Created users.getActivity procedure - Get recent user activities (articles, comments, ratings)
-- [x] Created users.getStats procedure - Get user statistics (counts)
-- [x] Enhanced users.getProfile procedure - Get user information
-- [x] Enhanced users.updateProfile procedure - Update user information
-
-### User Profile Page Features
-- [x] Display user information (name, email, phone, address, role)
-- [x] Show user avatar and join date
-- [x] Display user activity statistics (articles, comments, ratings, files)
-- [x] Show recent activity timeline (last 10 activities)
-- [x] Activity type indicators with icons (article, comment, rating)
-- [x] Edit profile functionality with form validation
-- [x] Responsive layout for desktop and mobile
-- [x] Loading states and error handling
-- [x] Date formatting with Thai locale (date-fns)
-- [x] Sticky profile card on desktop view
-
-### Testing
-- [x] Test profile page loads correctly
-- [x] Test user information displays properly
-- [x] Test activity data fetches successfully
-- [x] Test edit functionality works
-- [x] Test statistics calculate correctly
-- [x] Run full test suite - 33/35 passing (94%)
-- [x] Verified no TypeScript errors
-
-
-## Phase 11: Comprehensive Article Management Page - COMPLETED
-
-### tRPC Procedures
-- [ ] Verify articles.create procedure
-- [ ] Verify articles.list procedure
-- [ ] Verify articles.getBySlug procedure
-- [ ] Verify admin.articles.update procedure
-- [ ] Verify admin.articles.delete procedure
-- [ ] Add articles.search procedure if needed
-- [ ] Add articles.getStats procedure if needed
-
-### Article Management Page
-- [ ] Create ArticleManagement page component
-- [ ] Create article list table with columns (title, author, status, category, date)
-- [ ] Add pagination to article list
-- [ ] Add row actions (edit, delete, view)
-- [ ] Create delete confirmation dialog
-
-### Article Form Component
-- [ ] Create ArticleForm component for add/edit
-- [ ] Add form fields (title, slug, content, category, description)
-- [ ] Add form validation
-- [ ] Add rich text editor for content (optional)
-- [ ] Add category dropdown selector
-- [ ] Add publish/draft status toggle
-
-### Search, Filter, Sort
-- [ ] Add search by title/content
-- [ ] Add filter by category
-- [ ] Add filter by author
-- [ ] Add filter by status (published/draft)
-- [ ] Add sort by date, title, author
-- [ ] Add reset filters button
-
-### Testing
-- [ ] Test add article functionality
-- [ ] Test edit article functionality
-- [ ] Test delete article functionality
-- [ ] Test search functionality
-- [ ] Test filter functionality
-- [ ] Test sort functionality
-- [ ] Run full test suite
-
-
-## Phase 12: Homepage Menu Structure Improvement - IN PROGRESS
-
-### Main Navigation Menu
-- [ ] Analyze current Navigation component
-- [ ] Create enhanced main navigation with better structure
-- [ ] Add main menu items (หน้าแรก, สิทธิประโยชน์, นวัตกรรม, ทรัพยากร, เกี่ยวกับเรา, ติดต่อ)
-- [ ] Improve menu styling and responsiveness
-- [ ] Add active menu item indicator
-- [ ] Add mobile hamburger menu
-
-### Category Menu with Subcategories
-- [ ] Create category dropdown menu
-- [ ] Add subcategories for each main category
-- [ ] Implement hover effects for desktop
-- [ ] Implement click effects for mobile
-- [ ] Add category icons
-
-### Quick Links Section
-- [ ] Create quick links component
-- [ ] Add popular links (สมัครสมาชิก, ดาวน์โหลด, ติดต่อ, FAQ)
-- [ ] Add quick action buttons
-- [ ] Position quick links prominently
-
-### CTA Buttons Visibility
-- [ ] Improve CTA button styling
-- [ ] Add button animations
-- [ ] Increase button visibility
-- [ ] Add button icons
-- [ ] Test button click-through rates
-
-### Breadcrumb Navigation
-- [ ] Create Breadcrumb component
-- [ ] Implement breadcrumb logic
-- [ ] Add breadcrumb styling
-- [ ] Test breadcrumb on all pages
-- [ ] Add breadcrumb schema for SEO
-
-### Testing
-- [ ] Test navigation on desktop
-- [ ] Test navigation on mobile
-- [ ] Test all menu items work correctly
-- [ ] Test breadcrumb navigation
-- [ ] Verify CTA button visibility
-- [ ] Run full test suite
-
-
-## Next Steps (Optional) - Future Development
-
-### Email & Communication
-- [ ] Implement actual email sending service (SMTP/SendGrid)
-- [ ] Add email templates for notifications
-- [ ] Setup email verification for new users
-- [ ] Create email campaign management interface
-- [ ] Add SMS notification support (optional)
-
-### User Management Enhancements
-- [ ] Add user search and filtering to User Management
-- [ ] Implement user bulk actions (export, delete, role change)
-- [ ] Add user activity logs and audit trails
-- [ ] Create user import/export functionality
-- [ ] Add user segmentation for targeting
-
-### Security & Access Control
-- [ ] Implement role-based access control (RBAC) for all pages
-- [ ] Add permission-based feature access
-- [ ] Implement two-factor authentication (2FA)
-- [ ] Add API key management for integrations
-- [ ] Setup security headers and CORS policies
-
-### Analytics & Reporting
-- [ ] Add more analytics charts and metrics
-- [ ] Create custom report builder
-- [ ] Implement data export (CSV, PDF, Excel)
-- [ ] Add real-time analytics dashboard
-- [ ] Setup Google Analytics integration
-
-### Real-time Features
-- [ ] Implement notification system for real-time updates
-- [ ] Add WebSocket support for live notifications
-- [ ] Create notification preferences panel
-- [ ] Add in-app notification center
-- [ ] Setup push notifications for mobile
-
-### Mobile & Progressive Web App
-- [ ] Add mobile app version (React Native/Flutter)
-- [ ] Implement Progressive Web App (PWA) features
-- [ ] Add offline mode support
-- [ ] Create mobile-specific UI components
-- [ ] Setup app store deployment
-
-### DevOps & Infrastructure
-- [ ] Setup CI/CD pipeline (GitHub Actions/GitLab CI)
-- [ ] Implement automated testing in CI/CD
-- [ ] Setup staging environment
-- [ ] Configure production deployment
-- [ ] Add monitoring and alerting
-
-### Performance & Optimization
-- [ ] Performance optimization and caching
-- [ ] Implement Redis caching layer
-- [ ] Optimize database queries
-- [ ] Add image optimization and CDN
-- [ ] Setup lazy loading for components
-- [ ] Implement code splitting and bundling optimization
-
-### Content & SEO
-- [ ] Implement SEO optimization (meta tags, structured data)
-- [ ] Add sitemap generation
-- [ ] Create robots.txt configuration
-- [ ] Implement canonical URLs
-- [ ] Add Open Graph meta tags
-
-### Internationalization
-- [ ] Add multi-language support (English, Thai)
-- [ ] Implement language switcher
-- [ ] Create translation management system
-- [ ] Add RTL language support (if needed)
-
-### Integrations
-- [ ] Integrate with third-party payment gateways
-- [ ] Add social media login options
-- [ ] Implement API integrations (weather, maps, etc.)
-- [ ] Setup webhook support
-- [ ] Add Zapier/IFTTT integration
-
-### Documentation & Training
-- [ ] Create user documentation
-- [ ] Write API documentation
-- [ ] Create video tutorials
-- [ ] Setup knowledge base/FAQ
-- [ ] Create admin training materials
+# TechGreen Platform - Master TODO (Cleaned)
+
+อัปเดตล่าสุด: 2026-03-25
+เจ้าของงาน: TechGreen Dev Team
+
+---
+
+## Snapshot
+
+### สถานะรวม
+- ระบบแกนหลักใช้งานได้แล้ว: Database, Auth, Content Hub, CMS, Open Data (Energy)
+- โค้ดผ่าน TypeScript check ล่าสุด (`pnpm check`)
+- มีเอกสารคู่มือครบทั้งนักพัฒนาและเวอร์ชันอบรมภาษาไทย
+
+### ประเด็นสำคัญที่ต้องติดตาม
+- ต้องยืนยันการใช้งาน MySQL ในสภาพแวดล้อมปลายทางก่อน apply migration รอบสุดท้าย
+- `govData.dashboard` ชุด dataset เดิมมีโอกาสล้มเหลวจากต้นทาง (มี fallback พร้อมแล้ว)
+
+---
+
+## Done (Completed)
+
+## 1) Core Platform
+- [x] เชื่อมต่อฐานข้อมูล MySQL ผ่าน `mysql2` + Drizzle
+- [x] จัดโครงสร้าง schema หลัก: `users`, `articles`, `files`, `comments`, `ratings`
+- [x] เพิ่มระบบจัดเก็บไฟล์และการแชร์ไฟล์
+- [x] สร้าง tRPC routers หลักสำหรับระบบใช้งานจริง
+
+## 2) Authentication & Access Control
+- [x] รองรับเข้าสู่ระบบหลายช่องทาง: Email/Password, Google, Facebook (Passport)
+- [x] ย้ายการเก็บรหัสผ่าน local จาก memory ไปเก็บ hash ในฐานข้อมูล (`authCredentials`)
+- [x] แยกสิทธิ์ Admin/User ใน backend middleware และ frontend route guard
+
+## 3) Content & CMS
+- [x] หน้า Content Hub (`/learning`) แบบ card grid + filter + pagination + skeleton loading
+- [x] หน้า Article Detail (`/learning/:slug`) รองรับ Markdown
+- [x] ระบบแสดงความคิดเห็นและให้คะแนนใต้บทความ
+- [x] หน้า Admin Content Studio พร้อม Rich Text Editor และอัปโหลดรูป
+
+## 4) Open Data Integration
+- [x] สร้าง service เรียก API + ระบบ cache 1 ชั่วโมง
+- [x] สร้างหน้า Open Data Dashboard (`/open-data`)
+- [x] สร้างหน้า Energy Explorer (`/open-data/energy`) สำหรับข้อมูลกลุ่มพลังงาน
+- [x] รองรับค้นหา, แบ่งหน้า, preview data, export CSV
+- [x] เพิ่ม fallback เมื่อ endpoint dashboard หลักไม่พร้อม
+
+## 5) UI/UX
+- [x] ปรับธีมหลักเป็น Emerald + Slate
+- [x] ใช้ Sarabun เป็นฟอนต์หลักทั้งระบบ
+- [x] ปรับ responsive ให้ใช้งานได้ดีบนมือถือและแท็บเล็ต
+
+## 6) Documentation
+- [x] `docs/TECHGREEN_PLATFORM_DEVELOPER_GUIDE.md`
+- [x] `docs/SKILLED_API_WEB_DEV.md`
+- [x] `docs/TECHGREEN_THAI_OFFICIAL_TRAINING_GUIDE.md`
+- [x] ปรับ `.env.example` ให้สอดคล้องกับระบบล่าสุด
+
+---
+
+## In Progress / Blocked
+
+## A) Database Migration Apply (Environment Block)
+- [ ] Apply migration ในเครื่องปลายทางด้วย `pnpm db:push`
+- สาเหตุค้าง: MySQL บางช่วงเวลาไม่พร้อม (`ECONNREFUSED`)
+- แนวทาง: ตรวจ service DB และสิทธิ์ connection ก่อนรันซ้ำ
+
+## B) Dashboard Dataset Stability
+- [ ] ทบทวน dataset ID ใน `govData.dashboard` ให้เสถียรระยะยาว
+- สถานะปัจจุบัน: มี fallback หน้า Energy พร้อมใช้งาน
+
+---
+
+## Backlog (Prioritized)
+
+## P1 - ควรทำถัดไป (สำคัญสูง)
+- [ ] เพิ่มระบบบันทึก dataset ที่สนใจ (Favorite/Pin) ในหน้า `/open-data/energy`
+- [ ] เพิ่มชุดทดสอบ smoke test สำหรับเส้นทางสำคัญ
+  - `/learning`
+  - `/learning/:slug`
+  - `/admin/content-studio`
+  - `/open-data`
+  - `/open-data/energy`
+- [ ] สร้าง Deployment Checklist สำหรับส่งมอบ production
+
+## P2 - เพิ่มความน่าใช้และความต่อเนื่องของข้อมูล
+- [ ] สร้าง scheduled refresh (รายชั่วโมง) สำหรับข้อมูล Open Data สำคัญ
+- [ ] เก็บ snapshot ข้อมูลย้อนหลังสำหรับดูแนวโน้ม
+- [ ] เพิ่มหน้าสรุป KPI ข้อมูลพลังงาน (จำนวนชุดข้อมูล, หน่วยงาน, วันที่อัปเดต)
+
+## P3 - ต่อขยายระบบชุมชน
+- [ ] เพิ่ม member onboarding flow สำหรับผู้ใช้ใหม่
+- [ ] เพิ่มระบบแจ้งเตือนเชิงใช้งานจริง (notification UX)
+- [ ] เพิ่มฟังก์ชันค้นหา/กรองผู้ใช้ใน User Management
+
+---
+
+## Quality Gates (ก่อนปล่อยใช้งานจริง)
+
+- [ ] `pnpm check` ต้องผ่าน
+- [ ] route สำคัญต้องตอบ 200
+- [ ] auth flow ต้องทดสอบครบ (local + social)
+- [ ] open data route ต้องมีทั้ง success path และ fallback path
+- [ ] ตรวจความถูกต้องเอกสารกับสถานะโค้ดจริงอีกครั้ง
+
+---
+
+## Quick Commands
+
+```powershell
+pnpm check
+pnpm db:push
+pnpm dev
+curl.exe -s "http://localhost:3000/api/trpc/govData.energyGroup?batch=1&input=%7B%7D"
+```
+
+---
+
+## Reference Files
+
+- `server/db.ts`
+- `drizzle/schema.ts`
+- `server/_core/passport.ts`
+- `server/_core/authRoutes.ts`
+- `server/services/govDataService.ts`
+- `server/routers/govData.ts`
+- `client/src/pages/Learning.tsx`
+- `client/src/pages/ArticleDetail.tsx`
+- `client/src/pages/AdminContentStudio.tsx`
+- `client/src/pages/OpenDataDashboard.tsx`
+- `client/src/pages/EnergyDataPage.tsx`
+
