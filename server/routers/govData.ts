@@ -1,8 +1,25 @@
 import { publicProcedure, router } from "../_core/trpc";
-import { fetchGovDashboardData } from "../services/govDataService";
+import { fetchEnergyGroupDatasets, fetchGovDashboardData } from "../services/govDataService";
+import { z } from "zod";
 
 export const govDataRouter = router({
   dashboard: publicProcedure.query(async () => {
     return fetchGovDashboardData();
   }),
+
+  energyGroup: publicProcedure
+    .input(
+      z
+        .object({
+          start: z.number().int().min(0).default(0),
+          limit: z.number().int().min(1).max(20).default(6),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      return fetchEnergyGroupDatasets({
+        start: input?.start ?? 0,
+        limit: input?.limit ?? 6,
+      });
+    }),
 });

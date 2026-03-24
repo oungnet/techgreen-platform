@@ -97,6 +97,9 @@ export default function OpenDataDashboard() {
           <p className="text-sm font-medium text-emerald-700">Thai Government Open Data</p>
           <h1 className="text-2xl font-bold text-slate-900">Agriculture & Weather Dashboard</h1>
           <p className="mt-2 text-sm text-slate-600">ดึงข้อมูลจริงจาก data.go.th แล้วแสดงเป็นกราฟ + widget + ตารางตัวอย่าง</p>
+          <a href="/open-data/energy" className="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+            ไปหน้า Energy Open Data Explorer →
+          </a>
         </div>
 
         <Card className="rounded-2xl border-slate-200 p-5">

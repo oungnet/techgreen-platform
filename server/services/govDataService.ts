@@ -263,3 +263,203 @@ export async function fetchGovDashboardData(): Promise<GovDashboardPayload> {
     },
   };
 }
+
+type EnergyResource = {
+  id: string;
+  name: string;
+  format: string;
+  url: string;
+};
+
+export type EnergyDataset = {
+  id: string;
+  name: string;
+  title: string;
+  notes: string;
+  organization: string;
+  metadataModified: string;
+  resourceCount: number;
+  resources: EnergyResource[];
+  sampleRows: Record<string, unknown>[];
+};
+
+export type EnergyGroupPayload = {
+  group: string;
+  fetchedAt: string;
+  cached: boolean;
+  total: number;
+  start: number;
+  limit: number;
+  datasets: EnergyDataset[];
+};
+
+function splitCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (char === '"' && line[i + 1] === '"') {
+      current += '"';
+      i += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+async function fetchResourceSample(url: string, format: string): Promise<Record<string, unknown>[]> {
+  try {
+    const response = await axios.get(url, {
+      timeout: 12000,
+      responseType: "arraybuffer",
+      validateStatus: () => true,
+    });
+
+    if (response.status >= 400) return [];
+
+    const buffer = Buffer.from(response.data ?? []);
+    let text = new TextDecoder("utf-8").decode(buffer);
+    if ((text.match(/�/g) ?? []).length > 5) {
+      try {
+        text = new TextDecoder("windows-874").decode(buffer);
+      } catch {
+        // Keep UTF-8 decoded text when legacy decoder is unavailable.
+      }
+    }
+    text = text.trim();
+    if (!text) return [];
+
+    const normalizedFormat = format.toLowerCase();
+
+    if (normalizedFormat.includes("json")) {
+      const parsed = parseJsonSafely(text);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((item): item is Record<string, unknown> => item && typeof item === "object")
+          .slice(0, 5);
+      }
+      const records = extractRecords(parsed);
+      return records.slice(0, 5);
+    }
+
+    if (normalizedFormat.includes("csv")) {
+      const lines = text.split(/\r?\n/).filter((line) => line.trim());
+      if (lines.length < 2) return [];
+      const headers = splitCsvLine(lines[0]);
+      const rows: Record<string, unknown>[] = [];
+
+      for (const line of lines.slice(1, 6)) {
+        const cols = splitCsvLine(line);
+        const row: Record<string, unknown> = {};
+        headers.forEach((header, index) => {
+          row[header || `col_${index + 1}`] = cols[index] ?? "";
+        });
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchEnergyGroupDatasets(input: { start?: number; limit?: number }): Promise<EnergyGroupPayload> {
+  const start = Math.max(0, input.start ?? 0);
+  const limit = Math.min(20, Math.max(1, input.limit ?? 6));
+  const cacheKey = `energy:${start}:${limit}`;
+  const now = Date.now();
+  const cached = govCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.payload as EnergyGroupPayload;
+  }
+
+  const apiKey = ENV.dataGoThApiKey;
+  const ckanUrl = "https://www.data.go.th/api/3/action/package_search";
+  const response = await axios.get(ckanUrl, {
+    headers: apiKey ? { "api-key": apiKey } : undefined,
+    params: {
+      fq: "groups:energy",
+      rows: limit,
+      start,
+    },
+    timeout: 15000,
+  });
+
+  const result = response.data?.result;
+  const results = Array.isArray(result?.results) ? result.results : [];
+
+  const datasets: EnergyDataset[] = [];
+
+  for (const dataset of results) {
+    const resourcesRaw = Array.isArray(dataset?.resources) ? dataset.resources : [];
+    const resources: EnergyResource[] = resourcesRaw
+      .map((resource: any) => ({
+        id: String(resource?.id ?? ""),
+        name: String(resource?.name ?? resource?.id ?? "resource"),
+        format: String(resource?.format ?? "unknown"),
+        url: String(resource?.url ?? ""),
+      }))
+      .filter((resource: EnergyResource) => Boolean(resource.id && resource.url))
+      .slice(0, 6);
+
+    const previewResource = resources.find((resource) => {
+      const format = resource.format.toLowerCase();
+      return format.includes("csv") || format.includes("json");
+    });
+
+    const sampleRows = previewResource
+      ? await fetchResourceSample(previewResource.url, previewResource.format)
+      : [];
+
+    datasets.push({
+      id: String(dataset?.id ?? ""),
+      name: String(dataset?.name ?? ""),
+      title: String(dataset?.title ?? dataset?.name ?? "Untitled dataset"),
+      notes: String(dataset?.notes ?? ""),
+      organization: String(dataset?.organization?.title ?? dataset?.organization?.name ?? "-"),
+      metadataModified: String(dataset?.metadata_modified ?? ""),
+      resourceCount: resources.length,
+      resources,
+      sampleRows,
+    });
+  }
+
+  const payload: EnergyGroupPayload = {
+    group: "energy",
+    fetchedAt: new Date(now).toISOString(),
+    cached: false,
+    total: Number(result?.count ?? datasets.length),
+    start,
+    limit,
+    datasets,
+  };
+
+  govCache.set(cacheKey, {
+    payload,
+    fetchedAt: payload.fetchedAt,
+    expiresAt: now + ONE_HOUR_MS,
+  });
+
+  return payload;
+}

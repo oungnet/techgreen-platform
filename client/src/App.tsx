@@ -35,6 +35,7 @@ import Footer from "./components/Footer";
 import AdminRouteGuard from "./components/AdminRouteGuard";
 import AdminContentStudio from "./pages/AdminContentStudio";
 import OpenDataDashboard from "./pages/OpenDataDashboard";
+import EnergyDataPage from "./pages/EnergyDataPage";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -88,6 +89,7 @@ function Router() {
       </Route>
       <Route path="/analytics" component={AnalyticsDashboard} />
       <Route path="/open-data" component={OpenDataDashboard} />
+      <Route path="/open-data/energy" component={EnergyDataPage} />
       <Route path="/member-dashboard" component={MemberDashboard} />
       <Route path="/admin/articles">
         <AdminRouteGuard>
