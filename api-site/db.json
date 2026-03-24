@@ -1,0 +1,37 @@
+{
+    "accessRights": {
+        "disabled": 40,
+        "business": 35,
+        "land": 25
+    },
+    "greenEnergy": {
+        "solarFarm": 15,
+        "iotAgriculture": 20
+    },
+    "rightsUsage": {
+        "months": [
+            "ม.ค.",
+            "มี.ค.",
+            "มิ.ย.",
+            "ก.ย."
+        ],
+        "disabled": [
+            200,
+            400,
+            600,
+            800
+        ],
+        "business": [
+            150,
+            300,
+            450,
+            600
+        ],
+        "land": [
+            100,
+            200,
+            300,
+            400
+        ]
+    }
+}

@@ -36,6 +36,8 @@ export const db = drizzle(pool, {
 // Re-export schema types for convenience
 export type User = schema.User;
 export type InsertUser = schema.InsertUser;
+export type AuthCredential = schema.AuthCredential;
+export type InsertAuthCredential = schema.InsertAuthCredential;
 export type File = schema.File;
 export type InsertFile = schema.InsertFile;
 export type FileShare = schema.FileShare;
@@ -48,7 +50,7 @@ export type Rating = schema.Rating;
 export type InsertRating = schema.InsertRating;
 
 const {
-  users, files, fileShares, articles, comments, ratings,
+  users, authCredentials, files, fileShares, articles, comments, ratings,
   emailSubscriptions, emailNotifications, contentModerations,
   emailCampaigns, campaignRecipients, userAnalytics,
   userNotifications, userActivity, notificationPreferences
@@ -121,6 +123,27 @@ export async function getUserByEmail(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const result = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function upsertUserPasswordHash(userId: number, passwordHash: string) {
+  await db
+    .insert(authCredentials)
+    .values({ userId, passwordHash })
+    .onDuplicateKeyUpdate({
+      set: {
+        passwordHash,
+        updatedAt: new Date(),
+      },
+    });
+}
+
+export async function getUserPasswordHash(userId: number): Promise<string | null> {
+  const result = await db
+    .select({ passwordHash: authCredentials.passwordHash })
+    .from(authCredentials)
+    .where(eq(authCredentials.userId, userId))
+    .limit(1);
+  return result[0]?.passwordHash ?? null;
 }
 
 // File Management Queries

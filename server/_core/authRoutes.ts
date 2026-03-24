@@ -58,7 +58,12 @@ export function registerMembershipAuthRoutes(app: Express) {
         role: existing?.role ?? "user",
       });
 
-      await setLocalPassword(email, password);
+      const upsertedUser = await getUserByOpenId(openId);
+      if (!upsertedUser) {
+        throw new Error("Unable to create local user account");
+      }
+
+      await setLocalPassword(upsertedUser.id, password);
 
       const verifyToken = buildToken();
       emailVerificationTokens.set(verifyToken, email);
@@ -130,7 +135,13 @@ export function registerMembershipAuthRoutes(app: Express) {
       return;
     }
 
-    await setLocalPassword(email, newPassword);
+    const user = await getUserByEmail(email);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    await setLocalPassword(user.id, newPassword);
     passwordResetTokens.delete(token);
     res.json({ success: true });
   });

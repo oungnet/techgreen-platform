@@ -12,6 +12,7 @@ import Innovation from "./pages/Innovation";
 import Partnership from "./pages/Partnership";
 import Dashboard from "./pages/Dashboard";
 import Learning from "./pages/Learning";
+import ArticleDetail from "./pages/ArticleDetail";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import ApplyBenefits from "./pages/ApplyBenefits";
@@ -33,6 +34,7 @@ import Breadcrumb from "@/components/Breadcrumb";
 import Footer from "./components/Footer";
 import AdminRouteGuard from "./components/AdminRouteGuard";
 import AdminContentStudio from "./pages/AdminContentStudio";
+import OpenDataDashboard from "./pages/OpenDataDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -46,6 +48,7 @@ function Router() {
       <Route path="/partnership" component={Partnership} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/learning" component={Learning} />
+      <Route path="/learning/:slug" component={ArticleDetail} />
       <Route path="/register" component={Register} />
       <Route path="/login" component={Login} />
       <Route path="/apply-benefits" component={ApplyBenefits} />
@@ -84,13 +87,18 @@ function Router() {
         </AdminRouteGuard>
       </Route>
       <Route path="/analytics" component={AnalyticsDashboard} />
+      <Route path="/open-data" component={OpenDataDashboard} />
       <Route path="/member-dashboard" component={MemberDashboard} />
       <Route path="/admin/articles">
         <AdminRouteGuard>
           <ArticleManagement />
         </AdminRouteGuard>
       </Route>
-      <Route path="/admin/content-studio" component={AdminContentStudio} />
+      <Route path="/admin/content-studio">
+        <AdminRouteGuard>
+          <AdminContentStudio />
+        </AdminRouteGuard>
+      </Route>
       <Route path="/*" component={NotFound} />   </Switch>
   );
 }

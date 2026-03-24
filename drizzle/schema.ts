@@ -30,6 +30,21 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 /**
+ * Local authentication credentials table.
+ * Stores hashed password for email/password login.
+ */
+export const authCredentials = mysqlTable("authCredentials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AuthCredential = typeof authCredentials.$inferSelect;
+export type InsertAuthCredential = typeof authCredentials.$inferInsert;
+
+/**
  * Files table for storing file metadata and S3 references
  */
 export const files = mysqlTable("files", {

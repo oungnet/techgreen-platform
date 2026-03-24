@@ -9,6 +9,8 @@ export const ENV = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   facebookAppId: process.env.FACEBOOK_APP_ID ?? "",
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET ?? "",
+  dataGoThApiKey: process.env.DATA_GO_TH_API_KEY ?? "",
+  dataGoThBaseUrl: process.env.DATA_GO_TH_BASE_URL ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",

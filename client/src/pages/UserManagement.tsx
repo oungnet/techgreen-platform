@@ -39,7 +39,7 @@ export default function UserManagement() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 mb-2">Regular Users</p>
-              <p className="text-3xl font-bold">{adminStats?.users || 0}</p>
+              <p className="text-3xl font-bold">{Math.max((adminStats?.total || 0) - (adminStats?.admins || 0), 0)}</p>
             </div>
             <User className="w-12 h-12 text-green-600 opacity-20" />
           </div>

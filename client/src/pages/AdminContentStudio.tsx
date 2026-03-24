@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import AdminRouteGuard from "@/components/AdminRouteGuard";
+import { RichTextEditor } from "@/components/RichTextEditor";
 
 function slugify(value: string) {
   return value
@@ -12,6 +13,23 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== "string") {
+        reject(new Error("Failed to read file"));
+        return;
+      }
+      const base64 = result.split(",")[1];
+      resolve(base64 ?? "");
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
 }
 
 export default function AdminContentStudio() {
@@ -25,17 +43,27 @@ export default function AdminContentStudio() {
 
   const slug = useMemo(() => slugify(title), [title]);
   const createArticle = trpc.articles.create.useMutation();
+  const uploadFile = trpc.files.upload.useMutation();
 
   const submit = async () => {
     setMessage("");
     setError("");
     try {
+      const markdownContent = content
+        .replace(/<h2>(.*?)<\/h2>/gi, "## $1\n")
+        .replace(/<h1>(.*?)<\/h1>/gi, "# $1\n")
+        .replace(/<strong>(.*?)<\/strong>/gi, "**$1**")
+        .replace(/<em>(.*?)<\/em>/gi, "*$1*")
+        .replace(/<li>(.*?)<\/li>/gi, "- $1\n")
+        .replace(/<[^>]+>/g, "")
+        .trim();
+
       await createArticle.mutateAsync({
         title,
         slug,
         excerpt,
         category,
-        content,
+        content: markdownContent,
         coverImage: coverImage || undefined,
       });
       setMessage("บันทึกบทความสำเร็จ");
@@ -48,6 +76,32 @@ export default function AdminContentStudio() {
     }
   };
 
+  const handleUploadCover = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    setMessage("");
+
+    try {
+      const fileData = await fileToBase64(file);
+      const uploaded = await uploadFile.mutateAsync({
+        fileName: file.name,
+        fileData,
+        mimeType: file.type || "application/octet-stream",
+        fileSize: file.size,
+        category: "resources",
+        description: "article-cover",
+        isPublic: true,
+      });
+
+      setCoverImage(uploaded.fileUrl);
+      setMessage("อัปโหลดรูปปกสำเร็จ");
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "อัปโหลดรูปไม่สำเร็จ");
+    }
+  };
+
   return (
     <AdminRouteGuard>
       <div className="min-h-screen bg-slate-50 py-6">
@@ -56,7 +110,7 @@ export default function AdminContentStudio() {
             <p className="text-sm font-medium text-emerald-700">CMS</p>
             <h1 className="text-3xl font-bold text-slate-900">Content Studio</h1>
             <p className="mt-2 text-sm text-slate-600">
-              พื้นที่สร้าง/แก้ไขบทความแบบ Rich Text (เริ่มต้นด้วย HTML/Markdown ใน Textarea)
+              สร้างบทความด้วย Rich Text Editor และบันทึกเป็น Markdown เพื่อแสดงผลบนหน้า Article Detail
             </p>
           </div>
 
@@ -83,19 +137,20 @@ export default function AdminContentStudio() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">Upload Cover Image</label>
+              <Input type="file" accept="image/*" onChange={handleUploadCover} />
+              <p className="text-xs text-slate-500">ไฟล์จะถูกอัปโหลดผ่าน files API และบันทึก metadata ลงตาราง files อัตโนมัติ</p>
+            </div>
+
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Excerpt</label>
               <Textarea value={excerpt} onChange={(event) => setExcerpt(event.target.value)} className="min-h-20" />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Content</label>
-              <Textarea
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                className="min-h-64 font-mono text-sm"
-                placeholder="พิมพ์เนื้อหาแบบ HTML/Markdown และใส่ #hashtags ได้"
-              />
+              <label className="mb-1 block text-sm font-medium text-slate-700">Content (Rich Text)</label>
+              <RichTextEditor value={content} onChange={setContent} />
             </div>
 
             {message && <p className="text-sm font-medium text-emerald-700">{message}</p>}

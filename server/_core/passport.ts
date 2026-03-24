@@ -6,24 +6,24 @@ import bcrypt from "bcryptjs";
 import {
   getUserByEmail,
   getUserById,
+  getUserPasswordHash,
   getUserByOpenId,
+  upsertUserPasswordHash,
   upsertUser,
 } from "../db";
 import { ENV } from "./env";
-
-const passwordStore = new Map<string, string>();
 
 function getSafeEmail(email?: string | null) {
   return email?.trim().toLowerCase() || null;
 }
 
-export async function setLocalPassword(email: string, rawPassword: string) {
+export async function setLocalPassword(userId: number, rawPassword: string) {
   const hash = await bcrypt.hash(rawPassword, 10);
-  passwordStore.set(email.toLowerCase(), hash);
+  await upsertUserPasswordHash(userId, hash);
 }
 
-async function verifyLocalPassword(email: string, rawPassword: string) {
-  const hash = passwordStore.get(email.toLowerCase());
+async function verifyLocalPassword(userId: number, rawPassword: string) {
+  const hash = await getUserPasswordHash(userId);
   if (!hash) return false;
   return bcrypt.compare(rawPassword, hash);
 }
@@ -56,7 +56,7 @@ passport.use(
           return done(null, false, { message: "User not found" });
         }
 
-        const valid = await verifyLocalPassword(normalizedEmail, password);
+        const valid = await verifyLocalPassword(user.id, password);
         if (!valid) {
           return done(null, false, { message: "Invalid password" });
         }
