@@ -2,7 +2,7 @@ import axios from "axios";
 import { ENV } from "../_core/env";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
-const DEFAULT_BASE_URL = "https://api.data.go.th/open-data";
+const DEFAULT_BASE_URL = "https://data.go.th/api/3/action";
 
 type GovCacheEntry = {
   expiresAt: number;
@@ -17,6 +17,11 @@ export type GovDatasetResponse = {
   fetchedAt: string;
   cached: boolean;
   sourceUrl: string;
+};
+
+type CkanResponse<T> = {
+  success?: boolean;
+  result?: T;
 };
 
 function parseJsonSafely(value: unknown): unknown {
@@ -53,10 +58,6 @@ function extractRecords(raw: unknown): Record<string, unknown>[] {
 }
 
 function assertApiResponse(response: { status: number; headers: Record<string, unknown>; data: unknown }) {
-  if (response.status >= 300 && response.status < 400) {
-    throw new Error("data.go.th redirected request (likely token/service authorization issue)");
-  }
-
   const contentType = String(response.headers["content-type"] ?? "").toLowerCase();
   if (contentType.includes("text/html")) {
     throw new Error("data.go.th returned HTML instead of JSON (token may be invalid or not subscribed to this service)");
@@ -65,6 +66,80 @@ function assertApiResponse(response: { status: number; headers: Record<string, u
   if (typeof response.data === "string" && response.data.trim().startsWith("<!DOCTYPE html")) {
     throw new Error("data.go.th returned HTML page instead of API payload");
   }
+}
+
+async function ckanGet<T>(action: string, params: Record<string, unknown>) {
+  const apiKey = ENV.dataGoThApiKey;
+  const baseUrl = (ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const url = `${baseUrl}/${action}`;
+
+  const request = async (withApiKey: boolean) =>
+    axios.get(url, {
+      headers: {
+        ...(withApiKey && apiKey ? { "api-key": apiKey } : {}),
+        Accept: "application/json",
+      },
+      params,
+      timeout: 20000,
+      validateStatus: () => true,
+    });
+
+  let response = await request(true);
+
+  try {
+    assertApiResponse({
+      status: response.status,
+      headers: response.headers as Record<string, unknown>,
+      data: response.data,
+    });
+  } catch (error) {
+    // Some endpoints return HTML when key is not subscribed; retry publicly once.
+    if (apiKey) {
+      response = await request(false);
+      assertApiResponse({
+        status: response.status,
+        headers: response.headers as Record<string, unknown>,
+        data: response.data,
+      });
+    } else {
+      throw error;
+    }
+  }
+
+  if (response.status >= 400) {
+    throw new Error(`data.go.th ${action} failed with status ${response.status}`);
+  }
+
+  const payload = response.data as CkanResponse<T>;
+  if (!payload?.success) {
+    throw new Error(`data.go.th ${action} returned unsuccessful response`);
+  }
+
+  return {
+    data: payload,
+    sourceUrl: url,
+  };
+}
+
+function pickResourceIdFromPackage(result: Record<string, any> | undefined): string | null {
+  const resources = Array.isArray(result?.resources) ? result.resources : [];
+  const normalized = resources
+    .map((resource: any) => ({
+      id: String(resource?.id ?? "").trim(),
+      datastoreActive: Boolean(resource?.datastore_active),
+      format: String(resource?.format ?? "").toLowerCase(),
+    }))
+    .filter((resource: { id: string }) => Boolean(resource.id));
+
+  const preferred = normalized.find((resource: { datastoreActive: boolean }) => resource.datastoreActive);
+  if (preferred) return preferred.id;
+
+  const dataFormat = normalized.find((resource: { format: string }) =>
+    ["csv", "json", "xlsx", "xls"].some(fmt => resource.format.includes(fmt))
+  );
+  if (dataFormat) return dataFormat.id;
+
+  return normalized[0]?.id ?? null;
 }
 
 export async function fetchGovData(datasetId: string): Promise<GovDatasetResponse> {
@@ -80,50 +155,47 @@ export async function fetchGovData(datasetId: string): Promise<GovDatasetRespons
       records: extractRecords(cached.payload),
       fetchedAt: cached.fetchedAt,
       cached: true,
-      sourceUrl: `${ENV.dataGoThBaseUrl || DEFAULT_BASE_URL}/${cacheKey}`,
+      sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
     };
   }
 
-  const apiKey = ENV.dataGoThApiKey;
-  if (!apiKey) {
-    throw new Error("DATA_GO_TH_API_KEY is missing");
-  }
+  let records: Record<string, unknown>[] = [];
+  let sourceUrl = `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`;
 
-  const baseUrl = (ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
-  const sourceUrl = `${baseUrl}/${cacheKey}`;
+  try {
+    const packageShow = await ckanGet<Record<string, any>>("package_show", { id: cacheKey });
+    const resourceId = pickResourceIdFromPackage(packageShow.data.result);
 
-  const response = await axios.get(sourceUrl, {
-    headers: {
-      "api-key": apiKey,
-      Accept: "application/json",
-    },
-    params: {
+    if (!resourceId) {
+      throw new Error(`No CKAN resource found for dataset ${cacheKey}`);
+    }
+
+    const datastore = await ckanGet<Record<string, unknown>[]>("datastore_search", {
+      resource_id: resourceId,
       limit: 100,
-    },
-    timeout: 20000,
-    maxRedirects: 0,
-    validateStatus: () => true,
-  });
+    });
 
-  assertApiResponse({
-    status: response.status,
-    headers: response.headers as Record<string, unknown>,
-    data: response.data,
-  });
-
-  if (response.status >= 400) {
-    throw new Error(`data.go.th request failed with status ${response.status}`);
+    records = extractRecords(datastore.data);
+    sourceUrl = datastore.sourceUrl;
+  } catch {
+    // Fallback: some IDs may already point directly to CKAN resource_id.
+    const datastore = await ckanGet<Record<string, unknown>[]>("datastore_search", {
+      resource_id: cacheKey,
+      limit: 100,
+    });
+    records = extractRecords(datastore.data);
+    sourceUrl = datastore.sourceUrl;
   }
 
   const fetchedAt = new Date(now).toISOString();
   govCache.set(cacheKey, {
-    payload: response.data,
+    payload: records,
     expiresAt: now + ONE_HOUR_MS,
     fetchedAt,
   });
 
   return {
-    records: extractRecords(response.data),
+    records,
     fetchedAt,
     cached: false,
     sourceUrl,
@@ -168,6 +240,8 @@ export type WeatherWidget = {
 };
 
 export type GovDashboardPayload = {
+  status?: "ok" | "degraded";
+  errors?: string[];
   agriculture: {
     fetchedAt: string;
     cached: boolean;
@@ -239,12 +313,43 @@ export function normalizeWeather(records: Record<string, unknown>[]): WeatherWid
 }
 
 export async function fetchGovDashboardData(): Promise<GovDashboardPayload> {
-  const [agriculture, weather] = await Promise.all([
+  const [agricultureResult, weatherResult] = await Promise.allSettled([
     fetchGovData("888c3098-9040-4202-9014-9989a5342a77"),
     fetchGovData("f9293671-6101-447a-8f74-8d4841d6b059"),
   ]);
 
+  const errors: string[] = [];
+  const nowIso = new Date().toISOString();
+
+  const agriculture =
+    agricultureResult.status === "fulfilled"
+      ? agricultureResult.value
+      : (() => {
+          errors.push(`Agriculture API: ${agricultureResult.reason instanceof Error ? agricultureResult.reason.message : "unknown error"}`);
+          return {
+            fetchedAt: nowIso,
+            cached: false,
+            records: [] as Record<string, unknown>[],
+            sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
+          };
+        })();
+
+  const weather =
+    weatherResult.status === "fulfilled"
+      ? weatherResult.value
+      : (() => {
+          errors.push(`Weather API: ${weatherResult.reason instanceof Error ? weatherResult.reason.message : "unknown error"}`);
+          return {
+            fetchedAt: nowIso,
+            cached: false,
+            records: [] as Record<string, unknown>[],
+            sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
+          };
+        })();
+
   return {
+    status: errors.length ? "degraded" : "ok",
+    errors,
     agriculture: {
       fetchedAt: agriculture.fetchedAt,
       cached: agriculture.cached,
