@@ -78,19 +78,19 @@ export function ArticleComments({ articleId }: ArticleCommentsProps) {
           </div>
         )}
 
-        {comments.map((comment) => (
+        {Array.isArray(comments) && comments.map((comment) => (
           <Card key={comment.id} className="p-4">
             <div className="flex justify-between items-start mb-2">
               <div>
                 <p className="font-semibold text-slate-900">ผู้ใช้ #{comment.userId}</p>
                 <p className="text-sm text-gray-500">
-                  {new Date(comment.createdAt).toLocaleDateString("th-TH", {
+                  {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString("th-TH", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  })}
+                  }) : "ไม่ทราบวันที่"}
                 </p>
               </div>
             </div>

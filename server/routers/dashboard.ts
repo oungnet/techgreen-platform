@@ -51,13 +51,11 @@ export const dashboardRouter = router({
     }),
 
   getUnreadCount: protectedProcedure.query(async ({ ctx }) => {
-    return await getUnreadNotificationCount(ctx.user.id);
-  }),
-
+    return await getUnreadNotificationCount(ctx.user  // Mark notification as read
   markAsRead: protectedProcedure
     .input(z.object({ notificationId: z.number() }))
-    .mutation(async ({ ctx, input }) => {
-      await markNotificationAsRead(input.notificationId, ctx.user.id);
+    .mutation(async ({ input }) => {
+      await markNotificationAsRead(input.notificationId);
       return { success: true };
     }),
 

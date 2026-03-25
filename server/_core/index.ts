@@ -70,7 +70,7 @@ async function startServer() {
   registerMembershipAuthRoutes(app);
 
   // Lightweight SSR for article detail pages (SEO-friendly metadata).
-  app.get("/articles/:slug", async (req, res, next) => {
+  app.get("/learning/:slug", async (req, res, next) => {
     try {
       const article = await getArticleBySlug(req.params.slug);
       if (!article || article.published !== 1) {

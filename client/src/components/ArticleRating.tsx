@@ -48,13 +48,15 @@ export function ArticleRating({ articleId }: ArticleRatingProps) {
       </div>
       
       <div className="text-sm text-gray-600">
-        {rating && (
+        {rating ? (
           <>
             <span className="font-semibold text-slate-900">
-              {rating.average.toFixed(1)}
+              {Number(rating.average || 0).toFixed(1)}
             </span>
-            <span className="text-gray-500"> ({rating.count} คะแนน)</span>
+            <span className="text-gray-500"> ({rating.count || 0} คะแนน)</span>
           </>
+        ) : (
+          <span className="text-gray-400">ยังไม่มีคะแนน</span>
         )}
       </div>
 

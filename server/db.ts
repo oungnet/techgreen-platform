@@ -395,7 +395,12 @@ export async function createComment(comment: InsertComment) {
 }
 
 export async function getArticleComments(articleId: number) {
-  return await db.select().from(comments).where(and(eq(comments.articleId, articleId), eq(comments.approved, 1))).orderBy(desc(comments.createdAt));
+  try {
+    return await db.select().from(comments).where(and(eq(comments.articleId, articleId), eq(comments.approved, 1))).orderBy(desc(comments.createdAt));
+  } catch (error) {
+    console.error("[Database] Failed to get article comments:", error);
+    return [];
+  }
 }
 
 export async function createOrUpdateRating(rating: InsertRating) {
@@ -406,15 +411,20 @@ export async function createOrUpdateRating(rating: InsertRating) {
 }
 
 export async function getArticleRating(articleId: number) {
-  const result = await db.select({
-    average: sql<number>`avg(${ratings.score})`,
-    count: sql<number>`count(*)`
-  }).from(ratings).where(eq(ratings.articleId, articleId));
+  try {
+    const result = await db.select({
+      average: sql<number>`avg(${ratings.score})`,
+      count: sql<number>`count(*)`
+    }).from(ratings).where(eq(ratings.articleId, articleId));
 
-  return {
-    average: Number(result[0]?.average || 0),
-    count: result[0]?.count || 0
-  };
+    return {
+      average: Number(result[0]?.average || 0),
+      count: result[0]?.count || 0
+    };
+  } catch (error) {
+    console.error("[Database] Failed to get article rating:", error);
+    return { average: 0, count: 0 };
+  }
 }
 
 // User Activity & Notifications
@@ -426,12 +436,17 @@ export async function getUserActivities(userId: number, limit: number = 10) {
   return await db.select().from(userActivity).where(eq(userActivity.userId, userId)).orderBy(desc(userActivity.createdAt)).limit(limit);
 }
 
-export async function getUserNotifications(userId: number) {
-  return await db.select().from(userNotifications).where(eq(userNotifications.userId, userId)).orderBy(desc(userNotifications.createdAt));
+export async function getUserNotifications(userId: number, limit: number = 20) {
+  return await db.select().from(userNotifications).where(eq(userNotifications.userId, userId)).orderBy(desc(userNotifications.createdAt)).limit(limit);
 }
 
-export async function markNotificationAsRead(notificationId: number, userId: number) {
-  await db.update(userNotifications).set({ isRead: 1, readAt: new Date() }).where(and(eq(userNotifications.id, notificationId), eq(userNotifications.userId, userId)));
+export async function markNotificationAsRead(notificationId: number) {
+  try {
+    await db.update(userNotifications).set({ isRead: 1, readAt: new Date() }).where(eq(userNotifications.id, notificationId));
+  } catch (error) {
+    console.error("[Database] Failed to mark notification as read:", error);
+    throw error;
+  }
 }
 
 export async function getDashboardStats(userId: number) {
