@@ -13,6 +13,15 @@ import { serveStatic, setupVite } from "./vite";
 import { ENV } from "./env";
 import { getArticleBySlug } from "../db";
 
+function parseAllowedOrigins() {
+  const values = ENV.frontendOrigins
+    .split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
+  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+  return new Set([...defaults, ...values]);
+}
+
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -44,9 +53,43 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  const allowedOrigins = parseAllowedOrigins();
+  const isCrossSiteCookie = ENV.isProduction && allowedOrigins.size > 0;
+  const configuredSameSite = ENV.sessionCookieSameSite.toLowerCase();
+  const cookieSameSite: "lax" | "none" =
+    configuredSameSite === "none" || configuredSameSite === "lax"
+      ? (configuredSameSite as "lax" | "none")
+      : isCrossSiteCookie
+        ? "none"
+        : "lax";
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.header("Access-Control-Allow-Origin", origin);
+      res.header("Vary", "Origin");
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+      res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    }
+
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
+  app.get("/api/health", (_req, res) => {
+    res.status(200).json({
+      status: "ok",
+      service: "techgreen-api",
+      timestamp: new Date().toISOString(),
+      environment: ENV.isProduction ? "production" : "development",
+    });
+  });
 
   app.use(
     session({
@@ -56,7 +99,7 @@ async function startServer() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: cookieSameSite as "lax" | "none",
         secure: ENV.isProduction,
         maxAge: 1000 * 60 * 60 * 24 * 7,
       },
