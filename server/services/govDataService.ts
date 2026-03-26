@@ -12,6 +12,18 @@ type GovCacheEntry = {
 
 const govCache = new Map<string, GovCacheEntry>();
 
+function resolveCkanBaseUrl() {
+  const raw = (ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).trim();
+  if (!raw) return DEFAULT_BASE_URL;
+
+  // Backward compatibility: old env values may point to open-data or direct datastore endpoint.
+  if (raw.includes("/get-ckan") || raw.endsWith("/datastore_search") || raw.includes("/open-data")) {
+    return DEFAULT_BASE_URL;
+  }
+
+  return raw.replace(/\/+$/, "");
+}
+
 export type GovDatasetResponse = {
   records: Record<string, unknown>[];
   fetchedAt: string;
@@ -70,7 +82,7 @@ function assertApiResponse(response: { status: number; headers: Record<string, u
 
 async function ckanGet<T>(action: string, params: Record<string, unknown>) {
   const apiKey = ENV.dataGoThApiKey;
-  const baseUrl = (ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = resolveCkanBaseUrl();
   const url = `${baseUrl}/${action}`;
 
   const request = async (withApiKey: boolean) =>
@@ -155,12 +167,12 @@ export async function fetchGovData(datasetId: string): Promise<GovDatasetRespons
       records: extractRecords(cached.payload),
       fetchedAt: cached.fetchedAt,
       cached: true,
-      sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
+      sourceUrl: `${resolveCkanBaseUrl()}/datastore_search`,
     };
   }
 
   let records: Record<string, unknown>[] = [];
-  let sourceUrl = `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`;
+  let sourceUrl = `${resolveCkanBaseUrl()}/datastore_search`;
 
   try {
     const packageShow = await ckanGet<Record<string, any>>("package_show", { id: cacheKey });
@@ -330,7 +342,7 @@ export async function fetchGovDashboardData(): Promise<GovDashboardPayload> {
             fetchedAt: nowIso,
             cached: false,
             records: [] as Record<string, unknown>[],
-            sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
+            sourceUrl: `${resolveCkanBaseUrl()}/datastore_search`,
           };
         })();
 
@@ -343,7 +355,7 @@ export async function fetchGovDashboardData(): Promise<GovDashboardPayload> {
             fetchedAt: nowIso,
             cached: false,
             records: [] as Record<string, unknown>[],
-            sourceUrl: `${(ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "")}/datastore_search`,
+            sourceUrl: `${resolveCkanBaseUrl()}/datastore_search`,
           };
         })();
 
@@ -507,7 +519,7 @@ export async function fetchEnergyGroupDatasets(input: {
   }
 
   const apiKey = ENV.dataGoThApiKey;
-  const ckanUrl = "https://www.data.go.th/api/3/action/package_search";
+  const ckanUrl = `${resolveCkanBaseUrl()}/package_search`;
   const response = await axios.get(ckanUrl, {
     headers: apiKey ? { "api-key": apiKey } : undefined,
     params: {

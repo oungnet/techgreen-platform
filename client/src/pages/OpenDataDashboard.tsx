@@ -53,13 +53,14 @@ export default function OpenDataDashboard() {
   const { data, isLoading, error } = trpc.govData.dashboard.useQuery(undefined, {
     refetchInterval: 1000 * 60 * 60,
   });
+  const isDegraded = data?.status === "degraded" || Boolean(data?.errors?.length);
   const {
     data: energyFallback,
     isLoading: isEnergyLoading,
   } = trpc.govData.energyGroup.useQuery(
     { start: 0, limit: 3 },
     {
-      enabled: Boolean(error),
+      enabled: Boolean(error) || isDegraded,
     }
   );
 
@@ -140,24 +141,44 @@ export default function OpenDataDashboard() {
           </a>
         </div>
 
+        {isDegraded && (
+          <Card className="rounded-2xl border-amber-200 bg-amber-50 p-5 text-amber-900">
+            <h2 className="text-base font-semibold">สถานะข้อมูล: ทำงานแบบสำรอง (Degraded)</h2>
+            <p className="mt-1 text-sm">ระบบยังแสดงผลได้ตามปกติ แต่บางชุดข้อมูลจาก API ภายนอกยังไม่พร้อมใช้งาน</p>
+            {!!data.errors?.length && (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
+                {data.errors.map((message, index) => (
+                  <li key={`${index}-${message}`}>{message}</li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
+
         <Card className="rounded-2xl border-slate-200 p-5">
           <h2 className="text-lg font-semibold text-slate-900">แนวโน้มราคาสินค้าเกษตร</h2>
           <p className="mt-1 text-xs text-slate-500">
             fetched: {new Date(data.agriculture.fetchedAt).toLocaleString("th-TH")} | records: {data.agriculture.rawCount} | cache: {data.agriculture.cached ? "HIT" : "MISS"}
           </p>
           <p className="text-xs text-slate-500">source: {data.agriculture.sourceUrl}</p>
-          <div className="mt-4 h-80">
-            <Line
-              data={lineData}
-              options={{
-                maintainAspectRatio: false,
-                responsive: true,
-                plugins: {
-                  legend: { display: true },
-                },
-              }}
-            />
-          </div>
+          {data.agriculture.trend.length > 0 ? (
+            <div className="mt-4 h-80">
+              <Line
+                data={lineData}
+                options={{
+                  maintainAspectRatio: false,
+                  responsive: true,
+                  plugins: {
+                    legend: { display: true },
+                  },
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
+              ยังไม่มีข้อมูลแนวโน้มราคาให้แสดงในรอบนี้
+            </div>
+          )}
           <div className="mt-4">
             <h3 className="mb-2 text-sm font-semibold text-slate-700">ข้อมูลตัวอย่าง (Agriculture)</h3>
             <PreviewTable rows={data.agriculture.preview} />
@@ -178,6 +199,29 @@ export default function OpenDataDashboard() {
           <p className="mb-2 text-xs text-slate-500">source: {data.weather.sourceUrl}</p>
           <PreviewTable rows={data.weather.preview} />
         </Card>
+
+        {isDegraded && energyFallback && (
+          <Card className="rounded-2xl border-slate-200 p-5">
+            <h3 className="text-base font-semibold text-slate-900">ข้อมูลสำรองจากกลุ่มพลังงาน (Energy)</h3>
+            <p className="mt-1 text-xs text-slate-500">
+              fetched: {new Date(energyFallback.fetchedAt).toLocaleString("th-TH")} | total: {energyFallback.total} | cache:{" "}
+              {energyFallback.cached ? "HIT" : "MISS"}
+            </p>
+            <div className="mt-4 space-y-4">
+              {energyFallback.datasets.map((dataset) => (
+                <div key={dataset.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                  <h4 className="text-sm font-semibold text-slate-900">{dataset.title}</h4>
+                  <p className="text-xs text-slate-500">
+                    org: {dataset.organization} | resources: {dataset.resourceCount}
+                  </p>
+                  <div className="mt-2">
+                    <PreviewTable rows={dataset.sampleRows} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

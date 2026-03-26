@@ -53,10 +53,10 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-const routerBase = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+const routerBase = (import.meta.env.BASE_URL || "").replace(/\/$/, "");
 
 createRoot(document.getElementById("root")!).render(
-  <Router base={routerBase === "" ? "/" : routerBase}>
+  <Router base={routerBase}>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
         <App />
