@@ -1,0 +1,300 @@
+{
+  "info": {
+    "_postman_id": "e1fffc74-4974-4a4d-979b-5d69fc31f577",
+    "name": "TechGreen API - Backend + Data.go.th",
+    "description": "ชุดทดสอบ API สำหรับแพลตฟอร์ม TechGreen: ตรวจสอบ Backend ของระบบ และเชื่อมต่อ Data.go.th (Opend/CKAN)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Backend",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backend_base_url}}/api/health",
+              "host": [
+                "{{backend_base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "ตรวจสอบว่า backend ของ TechGreen ออนไลน์อยู่"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TRPC: govData.dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backend_base_url}}/api/trpc/govData.dashboard",
+              "host": [
+                "{{backend_base_url}}"
+              ],
+              "path": [
+                "api",
+                "trpc",
+                "govData.dashboard"
+              ]
+            },
+            "description": "ดึงข้อมูลรวม dashboard (ราคาสินค้าเกษตร + พยากรณ์อากาศ)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"response is JSON\", function () {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TRPC: govData.energyGroup",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const input = { start: 0, limit: 6, query: pm.environment.get(\"energy_query\") || \"\" };",
+                  "pm.variables.set(\"energy_group_input\", encodeURIComponent(JSON.stringify(input)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"response is JSON\", function () {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backend_base_url}}/api/trpc/govData.energyGroup?input={{energy_group_input}}",
+              "host": [
+                "{{backend_base_url}}"
+              ],
+              "path": [
+                "api",
+                "trpc",
+                "govData.energyGroup"
+              ],
+              "query": [
+                {
+                  "key": "input",
+                  "value": "{{energy_group_input}}"
+                }
+              ]
+            },
+            "description": "ดึงรายการข้อมูลหมวดพลังงานจาก data.go.th ผ่าน backend ของ TechGreen"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Data.go.th Direct",
+      "item": [
+        {
+          "name": "CKAN package_show (agriculture dataset)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "api-key",
+                "value": "{{data_go_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{data_go_ckan_base_url}}/package_show?id={{agriculture_dataset_id}}",
+              "host": [
+                "{{data_go_ckan_base_url}}"
+              ],
+              "path": [
+                "package_show"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{agriculture_dataset_id}}"
+                }
+              ]
+            },
+            "description": "ตรวจสอบสิทธิ์ token และความพร้อมของ dataset (ราคาสินค้าเกษตร)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"success is true\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CKAN package_show (weather dataset)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "api-key",
+                "value": "{{data_go_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{data_go_ckan_base_url}}/package_show?id={{weather_dataset_id}}",
+              "host": [
+                "{{data_go_ckan_base_url}}"
+              ],
+              "path": [
+                "package_show"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "{{weather_dataset_id}}"
+                }
+              ]
+            },
+            "description": "ตรวจสอบสิทธิ์ token และความพร้อมของ dataset (พยากรณ์อากาศ)"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"success is true\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CKAN package_search (energy group)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "api-key",
+                "value": "{{data_go_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{data_go_ckan_base_url}}/package_search?fq=groups:energy&rows=5&q={{energy_query}}",
+              "host": [
+                "{{data_go_ckan_base_url}}"
+              ],
+              "path": [
+                "package_search"
+              ],
+              "query": [
+                {
+                  "key": "fq",
+                  "value": "groups:energy"
+                },
+                {
+                  "key": "rows",
+                  "value": "5"
+                },
+                {
+                  "key": "q",
+                  "value": "{{energy_query}}"
+                }
+              ]
+            },
+            "description": "ตรวจสอบการค้นหาชุดข้อมูลหมวดพลังงานตามสิทธิ์ Opend"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"success is true\", function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [],
+  "variable": []
+}

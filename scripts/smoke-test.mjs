@@ -24,10 +24,7 @@ if (!frontendUrl) {
   process.exit(1);
 }
 
-if (!apiBaseUrl) {
-  console.error("[smoke] API_BASE_URL is required");
-  process.exit(1);
-}
+const hasApiBaseUrl = Boolean(apiBaseUrl);
 
 async function request(url) {
   const controller = new AbortController();
@@ -168,16 +165,27 @@ async function main() {
     await assertFrontendRouteOk(`${frontendUrl}${route}`);
   }
 
-  await assertStatusOk(`${apiBaseUrl}/api/health`);
+  if (hasApiBaseUrl) {
+    await assertStatusOk(`${apiBaseUrl}/api/health`);
 
-  const energyInput = encodeURIComponent(JSON.stringify({ start: 0, limit: 2, query: "" }));
-  const energyOk = await assertStatusSoft(
-    `${apiBaseUrl}/api/trpc/govData.energyGroup?input=${energyInput}`
-  );
-  const dashboardOk = await assertStatusSoft(`${apiBaseUrl}/api/trpc/govData.dashboard`);
+    const energyInput = encodeURIComponent(JSON.stringify({ start: 0, limit: 2, query: "" }));
+    const energyOk = await assertStatusSoft(
+      `${apiBaseUrl}/api/trpc/govData.energyGroup?input=${energyInput}`
+    );
+    const dashboardOk = await assertStatusSoft(`${apiBaseUrl}/api/trpc/govData.dashboard`);
 
-  if (strictExternalChecks && (!energyOk || !dashboardOk)) {
-    throw new Error("External data checks failed in strict mode");
+    if (strictExternalChecks && (!energyOk || !dashboardOk)) {
+      throw new Error("External data checks failed in strict mode");
+    }
+  } else {
+    report.checks.push({
+      url: "API_BASE_URL",
+      status: null,
+      ok: true,
+      skipped: true,
+      reason: "API checks skipped because API_BASE_URL is not configured",
+    });
+    console.warn("[smoke] API checks skipped because API_BASE_URL is not configured");
   }
 
   report.ok = true;
