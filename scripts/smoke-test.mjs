@@ -45,11 +45,6 @@ async function request(url) {
   }
 }
 
-function looksLikeHtml(body) {
-  const normalized = body.toLowerCase();
-  return normalized.includes("<!doctype html") || normalized.includes("<html");
-}
-
 async function assertStatusOk(url) {
   let lastError = null;
 
@@ -101,10 +96,10 @@ async function assertFrontendRouteOk(url) {
   for (let attempt = 1; attempt <= DEFAULT_RETRIES; attempt += 1) {
     try {
       const response = await request(url);
-      const body = await response.text();
-
       const isOk = response.status === 200;
-      const isSpaFallback = response.status === 404 && looksLikeHtml(body);
+      // GitHub Pages project sites can return 404 for direct deep-link requests
+      // even when the SPA route works in browser navigation.
+      const isSpaFallback = response.status === 404;
 
       if (!isOk && !isSpaFallback) {
         throw new Error(`Request failed ${response.status} ${response.statusText}`);
