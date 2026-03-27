@@ -13,6 +13,8 @@ export const ENV = {
   dataGoThBaseUrl: process.env.DATA_GO_TH_BASE_URL ?? "",
   dataGoThAgricultureResourceId: process.env.DATA_GO_TH_AGRICULTURE_RESOURCE_ID ?? "",
   dataGoThWeatherResourceId: process.env.DATA_GO_TH_WEATHER_RESOURCE_ID ?? "",
+  dataGoThAllowPublicFallback:
+    (process.env.DATA_GO_TH_ALLOW_PUBLIC_FALLBACK ?? "false").toLowerCase() === "true",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",

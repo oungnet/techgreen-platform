@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   pull_request:
     branches: ["main"]
@@ -21,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
@@ -29,6 +32,9 @@ jobs:
 
       - name: Type check
         run: pnpm check
+
+      - name: Env consistency check
+        run: pnpm env:check
 
       - name: Unit tests (CI-safe, no MySQL required)
         run: pnpm test

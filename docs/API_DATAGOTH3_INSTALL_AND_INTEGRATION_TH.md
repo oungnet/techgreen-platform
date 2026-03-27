@@ -2,7 +2,7 @@
 
 เอกสารฉบับนี้จัดทำเพื่อใช้งานกับระบบ TechGreen โดยอ้างอิงแนวทางจากคู่มือ `API-DATAGOTH3USERMANUAL.pdf` และปรับให้ตรงกับโครงสร้างโค้ดในโปรเจกต์นี้
 
-อัปเดตล่าสุด: 27 มีนาคม 2026
+อัปเดตล่าสุด: 28 มีนาคม 2026
 
 ## 1) วัตถุประสงค์
 
@@ -40,12 +40,16 @@ curl -X GET \
 
 ```env
 DATA_GO_TH_API_KEY=<YOUR_API_KEY>
-DATA_GO_TH_BASE_URL=https://data.go.th/api/3/action
+DATA_GO_TH_BASE_URL=https://opend.data.go.th/get-ckan
+DATA_GO_TH_AGRICULTURE_RESOURCE_ID=888c3098-9040-4202-9014-9989a5342a77
+DATA_GO_TH_WEATHER_RESOURCE_ID=f9293671-6101-447a-8f74-8d4841d6b059
+DATA_GO_TH_ALLOW_PUBLIC_FALLBACK=false
 ```
 
 ค่าแนะนำ:
-- ใช้ `DATA_GO_TH_BASE_URL=https://data.go.th/api/3/action` เป็นค่าหลัก
-- ระบบมี logic รองรับค่าเก่า (`/get-ckan`, `/open-data`, `/datastore_search`) ให้ normalize อัตโนมัติ
+- ใช้ `https://opend.data.go.th/get-ckan` ตามตัวอย่าง CKAN API ในคู่มือ
+- เปิด `DATA_GO_TH_ALLOW_PUBLIC_FALLBACK=true` เฉพาะกรณีต้องการ retry แบบไม่ส่ง key
+- สำหรับ production แนะนำ `DATA_GO_TH_ALLOW_PUBLIC_FALLBACK=false` เพื่อบังคับใช้งานผ่าน key เท่านั้น
 
 ## 5) โครงสร้างโค้ดที่เชื่อมต่อข้อมูลกลาง
 
@@ -71,6 +75,7 @@ DATA_GO_TH_BASE_URL=https://data.go.th/api/3/action
 - แปลงข้อมูลให้อยู่ในรูปแบบที่ UI ใช้ร่วมกัน
 - cache เพื่อลด API call ซ้ำ
 - degraded mode เมื่อ API ภายนอกไม่พร้อม
+- รองรับ strict key mode ตามนโยบาย Data.go.th
 
 3. Frontend แสดงสถานะข้อมูล:
 - `ok`
@@ -126,4 +131,3 @@ curl "http://127.0.0.1:3000/api/trpc/govData.dashboard"
 - [ ] หน้า Open Data แสดงสถานะข้อมูลได้ถูกต้อง
 - [ ] มี fallback เมื่อ API ภายนอกไม่พร้อม
 - [ ] ไม่พบ secret ใน source code/repo
-

@@ -108,8 +108,8 @@ async function ckanGet<T>(action: string, params: Record<string, unknown>) {
       data: response.data,
     });
   } catch (error) {
-    // Some endpoints return HTML when key is not subscribed; retry publicly once.
-    if (apiKey) {
+    // Optional compatibility mode: retry publicly for endpoints that allow anonymous access.
+    if (apiKey && ENV.dataGoThAllowPublicFallback) {
       response = await request(false);
       assertApiResponse({
         status: response.status,
