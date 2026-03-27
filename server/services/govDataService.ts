@@ -2,7 +2,7 @@ import axios from "axios";
 import { ENV } from "../_core/env";
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
-const DEFAULT_BASE_URL = "https://data.go.th/api/3/action";
+const DEFAULT_BASE_URL = "https://opend.data.go.th/get-ckan";
 
 type GovCacheEntry = {
   expiresAt: number;
@@ -16,8 +16,11 @@ function resolveCkanBaseUrl() {
   const raw = (ENV.dataGoThBaseUrl || DEFAULT_BASE_URL).trim();
   if (!raw) return DEFAULT_BASE_URL;
 
-  // Backward compatibility: old env values may point to open-data or direct datastore endpoint.
-  if (raw.includes("/get-ckan") || raw.endsWith("/datastore_search") || raw.includes("/open-data")) {
+  // Backward compatibility for legacy values
+  if (raw.endsWith("/datastore_search")) {
+    return raw.replace(/\/datastore_search\/?$/, "");
+  }
+  if (raw.includes("/open-data")) {
     return DEFAULT_BASE_URL;
   }
 
@@ -154,6 +157,25 @@ function pickResourceIdFromPackage(result: Record<string, any> | undefined): str
   return normalized[0]?.id ?? null;
 }
 
+async function discoverResourceIdByKeyword(keyword: string): Promise<string | null> {
+  const cleaned = keyword.trim();
+  if (!cleaned) return null;
+  const searched = await ckanGet<{ results?: Record<string, any>[] }>("package_search", {
+    q: cleaned,
+    rows: 5,
+  });
+
+  const datasets = searched.data.result?.results ?? [];
+  for (const dataset of datasets) {
+    const resourceId = pickResourceIdFromPackage(dataset);
+    if (resourceId) {
+      return resourceId;
+    }
+  }
+
+  return null;
+}
+
 export async function fetchGovData(datasetId: string): Promise<GovDatasetResponse> {
   const cacheKey = datasetId.trim();
   if (!cacheKey) {
@@ -212,6 +234,18 @@ export async function fetchGovData(datasetId: string): Promise<GovDatasetRespons
     cached: false,
     sourceUrl,
   };
+}
+
+async function fetchGovDataWithKeywordFallback(primaryId: string, keyword: string): Promise<GovDatasetResponse> {
+  try {
+    return await fetchGovData(primaryId);
+  } catch (error) {
+    const discoveredResourceId = await discoverResourceIdByKeyword(keyword);
+    if (!discoveredResourceId) {
+      throw error;
+    }
+    return fetchGovData(discoveredResourceId);
+  }
 }
 
 function toNumber(value: unknown): number | null {
@@ -326,8 +360,14 @@ export function normalizeWeather(records: Record<string, unknown>[]): WeatherWid
 
 export async function fetchGovDashboardData(): Promise<GovDashboardPayload> {
   const [agricultureResult, weatherResult] = await Promise.allSettled([
-    fetchGovData("888c3098-9040-4202-9014-9989a5342a77"),
-    fetchGovData("f9293671-6101-447a-8f74-8d4841d6b059"),
+    fetchGovDataWithKeywordFallback(
+      ENV.dataGoThAgricultureResourceId || "888c3098-9040-4202-9014-9989a5342a77",
+      "ราคาสินค้าเกษตร"
+    ),
+    fetchGovDataWithKeywordFallback(
+      ENV.dataGoThWeatherResourceId || "f9293671-6101-447a-8f74-8d4841d6b059",
+      "พยากรณ์อากาศ"
+    ),
   ]);
 
   const errors: string[] = [];

@@ -11,6 +11,8 @@ export const ENV = {
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET ?? "",
   dataGoThApiKey: process.env.DATA_GO_TH_API_KEY ?? "",
   dataGoThBaseUrl: process.env.DATA_GO_TH_BASE_URL ?? "",
+  dataGoThAgricultureResourceId: process.env.DATA_GO_TH_AGRICULTURE_RESOURCE_ID ?? "",
+  dataGoThWeatherResourceId: process.env.DATA_GO_TH_WEATHER_RESOURCE_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
