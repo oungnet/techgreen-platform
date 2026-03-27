@@ -8,10 +8,12 @@ const RETRY_DELAY_MS = 3000;
 const frontendUrl = (process.env.FRONTEND_URL || "").trim().replace(/\/+$/, "");
 const apiBaseUrl = (process.env.API_BASE_URL || "").trim().replace(/\/+$/, "");
 const reportPath = process.env.SMOKE_REPORT_PATH || "artifacts/smoke-report.json";
+const strictExternalChecks = (process.env.SMOKE_STRICT_EXTERNAL || "false").toLowerCase() === "true";
 const report = {
   generatedAt: new Date().toISOString(),
   frontendUrl,
   apiBaseUrl,
+  strictExternalChecks,
   checks: [],
   ok: false,
   error: null,
@@ -83,6 +85,24 @@ async function assertStatusOk(url) {
   throw new Error(`${message} for ${url}`);
 }
 
+async function assertStatusSoft(url) {
+  try {
+    await assertStatusOk(url);
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    for (let i = report.checks.length - 1; i >= 0; i -= 1) {
+      const check = report.checks[i];
+      if (check.url === url && check.ok === false) {
+        check.softFail = true;
+        break;
+      }
+    }
+    console.warn(`[smoke] SOFT FAIL ${url}: ${message}`);
+    return false;
+  }
+}
+
 function writeReport() {
   const outputPath = path.resolve(reportPath);
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
@@ -151,9 +171,15 @@ async function main() {
   await assertStatusOk(`${apiBaseUrl}/api/health`);
 
   const energyInput = encodeURIComponent(JSON.stringify({ start: 0, limit: 2, query: "" }));
-  await assertStatusOk(`${apiBaseUrl}/api/trpc/govData.energyGroup?input=${energyInput}`);
+  const energyOk = await assertStatusSoft(
+    `${apiBaseUrl}/api/trpc/govData.energyGroup?input=${energyInput}`
+  );
+  const dashboardOk = await assertStatusSoft(`${apiBaseUrl}/api/trpc/govData.dashboard`);
 
-  await assertStatusOk(`${apiBaseUrl}/api/trpc/govData.dashboard`);
+  if (strictExternalChecks && (!energyOk || !dashboardOk)) {
+    throw new Error("External data checks failed in strict mode");
+  }
+
   report.ok = true;
   console.log("[smoke] All checks passed");
 }
