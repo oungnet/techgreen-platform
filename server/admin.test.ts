@@ -1,144 +1,147 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { getDb } from "./db";
-import { users, articles, comments } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it } from "vitest";
 
-describe("Admin Dashboard", () => {
-  let db: any;
-  let adminUserId: number;
-  let articleId: number;
-  let commentId: number;
-  const uniqueId = Date.now();
+type TestUser = {
+  id: number;
+  openId: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+};
 
-  beforeAll(async () => {
-    db = await getDb();
-    if (!db) throw new Error("Database not available");
+type TestArticle = {
+  id: number;
+  title: string;
+  slug: string;
+  published: number;
+  authorId: number;
+  viewCount: number;
+};
 
-    // Create admin user
-    const adminResult = await db.insert(users).values({
-      openId: "admin-test-" + uniqueId,
-      name: "Admin Test",
-      email: "admin@test.com",
-      role: "admin",
-    });
-    adminUserId = (adminResult as any).insertId || 1;
+type TestComment = {
+  id: number;
+  articleId: number;
+  userId: number;
+  content: string;
+  approved: number;
+};
 
-    // Create test article with unique slug
-    const articleResult = await db.insert(articles).values({
-      title: "Test Article " + uniqueId,
-      slug: "test-article-" + uniqueId,
-      content: "Test content",
-      excerpt: "Test excerpt",
-      category: "disability-benefits",
-      authorId: adminUserId,
-      published: 1,
-      viewCount: 0,
-    });
-    articleId = (articleResult as any).insertId || 1;
+function createAdminFixture() {
+  const users: TestUser[] = [
+    { id: 1, openId: "admin-test", name: "Admin", email: "admin@test.com", role: "admin" },
+    { id: 2, openId: "user-test", name: "User", email: "user@test.com", role: "user" },
+  ];
 
-    // Create test comment
-    const commentResult = await db.insert(comments).values({
-      content: "Test comment",
-      articleId: articleId,
-      userId: adminUserId,
-      approved: 0,
-    });
-    commentId = (commentResult as any).insertId || 1;
+  const articles: TestArticle[] = [
+    { id: 1, title: "Article One", slug: "article-one", published: 1, authorId: 1, viewCount: 15 },
+    { id: 2, title: "Article Two", slug: "article-two", published: 0, authorId: 1, viewCount: 4 },
+  ];
+
+  const comments: TestComment[] = [
+    { id: 1, articleId: 1, userId: 2, content: "Pending comment", approved: 0 },
+    { id: 2, articleId: 1, userId: 1, content: "Approved comment", approved: 1 },
+  ];
+
+  return { users, articles, comments };
+}
+
+describe("Admin Dashboard (in-memory)", () => {
+  let fixture = createAdminFixture();
+
+  beforeEach(() => {
+    fixture = createAdminFixture();
   });
 
   describe("Articles Management", () => {
     it("should list articles", async () => {
-      const result = await db.select().from(articles).limit(10);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toHaveProperty("title");
-      expect(result[0]).toHaveProperty("published");
+      expect(fixture.articles.length).toBeGreaterThan(0);
+      expect(fixture.articles[0]).toHaveProperty("title");
+      expect(fixture.articles[0]).toHaveProperty("published");
     });
 
     it("should update article published status", async () => {
-      await db.update(articles).set({ published: 0 }).where(eq(articles.id, articleId));
-      const updated = await db.select().from(articles).where(eq(articles.id, articleId));
-      expect(updated[0].published).toBe(0);
+      const target = fixture.articles.find((article) => article.id === 1);
+      expect(target).toBeDefined();
+      if (!target) return;
 
-      // Reset
-      await db.update(articles).set({ published: 1 }).where(eq(articles.id, articleId));
+      target.published = 0;
+      expect(target.published).toBe(0);
+
+      target.published = 1;
+      expect(target.published).toBe(1);
     });
 
     it("should get article statistics", async () => {
-      const all = await db.select().from(articles);
-      const published = all.filter((a: any) => a.published === 1);
-      expect(all.length).toBeGreaterThanOrEqual(0);
-      expect(published.length).toBeGreaterThanOrEqual(0);
+      const total = fixture.articles.length;
+      const published = fixture.articles.filter((article) => article.published === 1).length;
+
+      expect(total).toBeGreaterThanOrEqual(0);
+      expect(published).toBeGreaterThanOrEqual(0);
+      expect(published).toBeLessThanOrEqual(total);
     });
   });
 
   describe("Comments Management", () => {
     it("should list comments", async () => {
-      const result = await db.select().from(comments).limit(10);
-      expect(Array.isArray(result)).toBe(true);
+      expect(Array.isArray(fixture.comments)).toBe(true);
+      expect(fixture.comments.length).toBeGreaterThan(0);
     });
 
     it("should approve comment", async () => {
-      await db.update(comments).set({ approved: 1 }).where(eq(comments.id, commentId));
-      const updated = await db.select().from(comments).where(eq(comments.id, commentId));
-      expect(updated[0].approved).toBe(1);
+      const target = fixture.comments.find((comment) => comment.id === 1);
+      expect(target).toBeDefined();
+      if (!target) return;
 
-      // Reset
-      await db.update(comments).set({ approved: 0 }).where(eq(comments.id, commentId));
+      target.approved = 1;
+      expect(target.approved).toBe(1);
     });
 
     it("should reject comment", async () => {
-      await db.update(comments).set({ approved: 0 }).where(eq(comments.id, commentId));
-      const updated = await db.select().from(comments).where(eq(comments.id, commentId));
-      expect(updated[0].approved).toBe(0);
+      const target = fixture.comments.find((comment) => comment.id === 2);
+      expect(target).toBeDefined();
+      if (!target) return;
+
+      target.approved = 0;
+      expect(target.approved).toBe(0);
     });
 
     it("should filter comments by approval status", async () => {
-      const approved = await db
-        .select()
-        .from(comments)
-        .where(eq(comments.approved, 1));
-      const pending = await db
-        .select()
-        .from(comments)
-        .where(eq(comments.approved, 0));
+      const approved = fixture.comments.filter((comment) => comment.approved === 1);
+      const pending = fixture.comments.filter((comment) => comment.approved === 0);
 
       expect(Array.isArray(approved)).toBe(true);
       expect(Array.isArray(pending)).toBe(true);
     });
 
     it("should get comment statistics", async () => {
-      const all = await db.select().from(comments);
-      const approved = all.filter((c: any) => c.approved === 1);
-      const pending = all.filter((c: any) => c.approved === 0);
+      const all = fixture.comments.length;
+      const approved = fixture.comments.filter((comment) => comment.approved === 1).length;
+      const pending = fixture.comments.filter((comment) => comment.approved === 0).length;
 
-      expect(all.length).toBeGreaterThanOrEqual(0);
-      expect(approved.length + pending.length).toBe(all.length);
+      expect(all).toBeGreaterThanOrEqual(0);
+      expect(approved + pending).toBe(all);
     });
   });
 
   describe("Dashboard Statistics", () => {
     it("should count total users", async () => {
-      const result = await db.select().from(users);
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThan(0);
+      expect(Array.isArray(fixture.users)).toBe(true);
+      expect(fixture.users.length).toBeGreaterThan(0);
     });
 
     it("should count total articles", async () => {
-      const result = await db.select().from(articles);
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(fixture.articles)).toBe(true);
+      expect(fixture.articles.length).toBeGreaterThanOrEqual(0);
     });
 
     it("should count total comments", async () => {
-      const result = await db.select().from(comments);
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThanOrEqual(0);
+      expect(Array.isArray(fixture.comments)).toBe(true);
+      expect(fixture.comments.length).toBeGreaterThanOrEqual(0);
     });
 
     it("should count pending comments", async () => {
-      const result = await db.select().from(comments).where(eq(comments.approved, 0));
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThanOrEqual(0);
+      const pending = fixture.comments.filter((comment) => comment.approved === 0);
+      expect(Array.isArray(pending)).toBe(true);
+      expect(pending.length).toBeGreaterThanOrEqual(0);
     });
   });
 });

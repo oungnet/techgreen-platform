@@ -1,13 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import * as db from "./db";
-
-// Mock database functions
-vi.mock("./db", async () => {
-  const actual = await vi.importActual("./db");
-  return {
-    ...actual,
-  };
-});
+import { describe, it, expect } from "vitest";
 
 describe("File Management", () => {
   describe("File Operations", () => {

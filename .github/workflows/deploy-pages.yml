@@ -48,6 +48,8 @@ jobs:
           path: dist/public
 
   deploy:
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -57,3 +59,29 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run smoke checks (frontend + api)
+        env:
+          FRONTEND_URL: ${{ needs.deploy.outputs.page_url }}
+          API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          SMOKE_REPORT_PATH: artifacts/smoke-report.json
+        run: node scripts/smoke-test.mjs
+
+      - name: Upload smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: artifacts/smoke-report.json
