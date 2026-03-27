@@ -1,13 +1,16 @@
 services:
+  # Backend API (Node.js + Express + tRPC)
   - type: web
     name: techgreen-api
     runtime: node
     plan: free
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    autoDeploy: true
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm start
     healthCheckPath: /api/health
     envVars:
+      # Core runtime
       - key: NODE_ENV
         value: production
       - key: PORT
@@ -16,3 +19,33 @@ services:
         value: https://oungnet.github.io
       - key: SESSION_COOKIE_SAMESITE
         value: none
+
+      # Security (set securely in Render dashboard when using blueprint)
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Database (required)
+      - key: DATABASE_URL
+        sync: false
+
+      # OAuth providers (optional but recommended)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_APP_ID
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+
+      # Thai Government Open Data
+      - key: DATA_GO_TH_API_KEY
+        sync: false
+      - key: DATA_GO_TH_BASE_URL
+        value: https://opend.data.go.th/get-ckan
+      - key: DATA_GO_TH_AGRICULTURE_RESOURCE_ID
+        value: 888c3098-9040-4202-9014-9989a5342a77
+      - key: DATA_GO_TH_WEATHER_RESOURCE_ID
+        value: f9293671-6101-447a-8f74-8d4841d6b059
