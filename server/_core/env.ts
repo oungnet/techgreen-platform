@@ -1,8 +1,10 @@
+import { resolveDatabaseUrl } from "../../shared/database-url";
+
 export const ENV = {
   appId: process.env.VITE_APP_ID ?? "",
   cookieSecret: process.env.JWT_SECRET ?? "",
   sessionSecret: process.env.SESSION_SECRET ?? process.env.NEXTAUTH_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
+  databaseUrl: resolveDatabaseUrl(process.env),
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
