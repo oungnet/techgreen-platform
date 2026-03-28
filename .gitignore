@@ -109,3 +109,6 @@ artifacts/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# Manus local metadata/cache
+.manus/db/
