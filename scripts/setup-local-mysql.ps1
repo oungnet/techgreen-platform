@@ -47,7 +47,6 @@ function Ensure-MySqlServiceRegistered {
 basedir=$mysqlBase
 datadir=$dataDir
 port=3306
-default_authentication_plugin=mysql_native_password
 "@
       New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
       Set-Content -Path $myIni -Value $myIniContent -Encoding ASCII

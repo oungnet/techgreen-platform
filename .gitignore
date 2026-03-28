@@ -112,3 +112,6 @@ artifacts/
 
 # Manus local metadata/cache
 .manus/db/
+
+# Local MySQL user-mode data directory
+.local-mysql/

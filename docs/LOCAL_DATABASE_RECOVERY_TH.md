@@ -30,6 +30,24 @@ pwsh ./scripts/setup-local-mysql.ps1 -InstallIfMissing
 DATABASE_URL=mysql://root:1234@localhost:3306/techgreen_db
 ```
 
+## ทางเลือกแนะนำเมื่อเจอปัญหา Permission ที่ Program Files
+
+หาก start service ไม่ได้เพราะสิทธิ์ระบบ ให้ใช้ MySQL แบบ user-mode ในโฟลเดอร์โปรเจกต์:
+
+```powershell
+pwsh ./scripts/start-local-mysql-user.ps1
+```
+
+สคริปต์จะพิมพ์ `DATABASE_URL` ที่ใช้งานได้ทันที เช่น:
+
+`mysql://root:@127.0.0.1:3307/techgreen_db`
+
+เมื่อต้องการหยุด:
+
+```powershell
+pwsh ./scripts/stop-local-mysql-user.ps1
+```
+
 ## 4) สร้าง/อัปเดต schema
 
 ```powershell
