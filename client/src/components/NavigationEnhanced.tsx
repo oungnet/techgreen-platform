@@ -30,6 +30,14 @@ export default function NavigationEnhanced() {
       ],
     },
     { label: "ความร่วมมือ", href: "/partnership" },
+    {
+      label: "ข้อมูลเปิด",
+      submenu: [
+        { label: "Open Data Dashboard", href: "/open-data" },
+        { label: "Energy Explorer", href: "/open-data/energy" },
+        { label: "Open Data Catalog", href: "/open-data/catalog" },
+      ],
+    },
     { label: "แดชบอร์ด", href: "/dashboard" },
     { label: "เรียนรู้", href: "/learning" },
   ];

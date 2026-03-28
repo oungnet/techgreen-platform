@@ -10,6 +10,8 @@
     "check": "tsc --noEmit",
     "env:check": "node scripts/check-env-consistency.mjs",
     "db:check": "node scripts/db-check.mjs",
+    "ckan:health": "node scripts/ckan-health-check.mjs",
+    "ckan:smoke": "node scripts/techgreen-ckan-smoke.mjs",
     "format": "prettier --write .",
     "test": "vitest run",
     "smoke:test": "node scripts/smoke-test.mjs",
