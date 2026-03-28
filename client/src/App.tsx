@@ -37,6 +37,7 @@ import AdminContentStudio from "./pages/AdminContentStudio";
 import OpenDataDashboard from "./pages/OpenDataDashboard";
 import EnergyDataPage from "./pages/EnergyDataPage";
 import OpenDataCatalog from "./pages/OpenDataCatalog";
+import ComponentShowcase from "./pages/ComponentShowcase";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -92,6 +93,7 @@ function Router() {
       <Route path="/open-data" component={OpenDataDashboard} />
       <Route path="/open-data/energy" component={EnergyDataPage} />
       <Route path="/open-data/catalog" component={OpenDataCatalog} />
+      <Route path="/components" component={ComponentShowcase} />
       <Route path="/member-dashboard" component={MemberDashboard} />
       <Route path="/admin/articles">
         <AdminRouteGuard>

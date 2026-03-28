@@ -60,6 +60,16 @@ export default function Footer() {
                   เรียนรู้
                 </Link>
               </li>
+              <li>
+                <Link href="/open-data" className="hover:text-green-400 transition">
+                  Open Data
+                </Link>
+              </li>
+              <li>
+                <Link href="/open-data/catalog" className="hover:text-green-400 transition">
+                  Data Catalog
+                </Link>
+              </li>
             </ul>
           </div>
 

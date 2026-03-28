@@ -159,6 +159,8 @@ async function main() {
     "",
     "/learning",
     "/open-data",
+    "/open-data/catalog",
+    "/components",
   ];
 
   for (const route of frontendRoutes) {
