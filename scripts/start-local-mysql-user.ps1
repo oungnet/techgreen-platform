@@ -65,13 +65,14 @@ if (Test-Path $pidFile) {
       Write-Step "MySQL already running (PID $($existingProc.Id))"
       Write-Step "DATABASE_URL=mysql://root:@127.0.0.1:$Port/techgreen_db"
       exit 0
-    } catch {
+    }
+    catch {
       Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
     }
   }
 }
 
-$args = @(
+$'args' = @(
   "--no-defaults",
   "--basedir=""$mysqlBase""",
   "--datadir=""$dataDir""",
