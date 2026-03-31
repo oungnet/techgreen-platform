@@ -11,6 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { AlertTriangle, ArrowRight, Database, RefreshCcw } from "lucide-react";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -22,7 +23,7 @@ function PreviewTable({ rows }: { rows: Record<string, unknown>[] }) {
   const keys = Object.keys(rows[0]).slice(0, 6);
 
   return (
-    <div className="overflow-auto rounded-lg border border-slate-200">
+    <div className="overflow-auto rounded-xl border border-slate-200">
       <table className="min-w-full text-left text-xs">
         <thead className="bg-slate-100 text-slate-700">
           <tr>
@@ -50,9 +51,10 @@ function PreviewTable({ rows }: { rows: Record<string, unknown>[] }) {
 }
 
 export default function OpenDataDashboard() {
-  const { data, isLoading, error } = trpc.govData.dashboard.useQuery(undefined, {
+  const { data, isLoading, error, refetch, isFetching } = trpc.govData.dashboard.useQuery(undefined, {
     refetchInterval: 1000 * 60 * 60,
   });
+
   const isDegraded = data?.status === "degraded" || Boolean(data?.errors?.length);
   const {
     data: energyFallback,
@@ -67,9 +69,9 @@ export default function OpenDataDashboard() {
   if (isLoading) {
     return (
       <div className="container space-y-4 py-8">
-        <Skeleton className="h-14 w-72" />
-        <Skeleton className="h-72 w-full" />
-        <Skeleton className="h-44 w-full" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-72 w-full rounded-2xl" />
+        <Skeleton className="h-52 w-full rounded-2xl" />
       </div>
     );
   }
@@ -78,39 +80,36 @@ export default function OpenDataDashboard() {
     if (isEnergyLoading) {
       return (
         <div className="container space-y-4 py-8">
-          <Skeleton className="h-14 w-72" />
-          <Skeleton className="h-44 w-full" />
-          <Skeleton className="h-44 w-full" />
+          <Skeleton className="h-24 w-full rounded-2xl" />
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <Skeleton className="h-44 w-full rounded-2xl" />
         </div>
       );
     }
 
     return (
       <div className="container py-8">
-        <div className="space-y-4">
-          <Card className="space-y-2 p-6 text-red-700">
-            <h2 className="text-lg font-semibold">ไม่สามารถดึง dashboard ชุดเดิมได้</h2>
-            <p className="text-sm">{error?.message ?? "unknown error"}</p>
-            <p className="text-xs text-slate-600">ระบบสลับไปใช้หน้า Energy สำรองเพื่อให้ใช้งานข้อมูลสำคัญต่อเนื่อง</p>
-            <a href="/open-data/energy" className="inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-800">
-              ไปหน้า Energy Open Data Explorer →
-            </a>
-          </Card>
+        <Card className="space-y-3 rounded-2xl border-rose-200 bg-rose-50 p-6 text-rose-900">
+          <h2 className="text-lg font-semibold">ไม่สามารถโหลดแดชบอร์ดหลักได้</h2>
+          <p className="text-sm">{error?.message ?? "unknown error"}</p>
+          <a href="/open-data/energy" className="inline-flex items-center text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+            ไปหน้า Energy Open Data Explorer <ArrowRight className="ml-1 h-4 w-4" />
+          </a>
+        </Card>
 
-          {energyFallback && (
-            <>
-              {energyFallback.datasets.map((dataset) => (
-                <Card key={dataset.id} className="space-y-2 p-5">
-                  <h3 className="text-base font-semibold text-slate-900">{dataset.title}</h3>
-                  <p className="text-xs text-slate-500">
-                    org: {dataset.organization} | resources: {dataset.resourceCount}
-                  </p>
-                  <PreviewTable rows={dataset.sampleRows} />
-                </Card>
-              ))}
-            </>
-          )}
-        </div>
+        {energyFallback ? (
+          <div className="mt-4 space-y-4">
+            {energyFallback.datasets.map((dataset) => (
+              <Card key={dataset.id} className="space-y-2 rounded-2xl p-5">
+                <h3 className="text-base font-semibold text-slate-900">{dataset.title}</h3>
+                <p className="text-xs text-slate-500">
+                  org: {dataset.organization} | resources: {dataset.resourceCount}
+                </p>
+                <PreviewTable rows={dataset.sampleRows} />
+              </Card>
+            ))}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -122,7 +121,7 @@ export default function OpenDataDashboard() {
         label: "ราคาเกษตรรายวัน",
         data: data.agriculture.trend.map((point) => point.value),
         borderColor: "#059669",
-        backgroundColor: "rgba(5, 150, 105, 0.15)",
+        backgroundColor: "rgba(5, 150, 105, 0.14)",
         tension: 0.35,
         fill: true,
       },
@@ -132,19 +131,33 @@ export default function OpenDataDashboard() {
   return (
     <div className="bg-slate-50 py-6">
       <div className="container space-y-6">
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-5">
-          <p className="text-sm font-medium text-emerald-700">Thai Government Open Data</p>
-          <h1 className="text-2xl font-bold text-slate-900">Agriculture & Weather Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-600">ดึงข้อมูลจริงจาก data.go.th แล้วแสดงเป็นกราฟ + widget + ตารางตัวอย่าง</p>
-          <a href="/open-data/energy" className="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-800">
-            ไปหน้า Energy Open Data Explorer →
-          </a>
-        </div>
+        <Card className="rounded-2xl border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900 px-6 py-6 text-slate-100">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200">
+                <Database className="h-3.5 w-3.5" />
+                THAI GOVERNMENT OPEN DATA
+              </p>
+              <h1 className="mt-3 text-2xl font-bold">Agriculture & Weather Command Center</h1>
+              <p className="mt-2 text-sm text-slate-300">ข้อมูลจริงจาก data.go.th พร้อม cache 1 ชั่วโมง และ fallback อัตโนมัติ</p>
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 hover:bg-slate-800"
+            >
+              <RefreshCcw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              รีเฟรชข้อมูล
+            </button>
+          </div>
+        </Card>
 
-        {isDegraded && (
+        {isDegraded ? (
           <Card className="rounded-2xl border-amber-200 bg-amber-50 p-5 text-amber-900">
-            <h2 className="text-base font-semibold">สถานะข้อมูล: ทำงานแบบสำรอง (Degraded)</h2>
-            <p className="mt-1 text-sm">ระบบยังแสดงผลได้ตามปกติ แต่บางชุดข้อมูลจาก API ภายนอกยังไม่พร้อมใช้งาน</p>
+            <h2 className="inline-flex items-center text-base font-semibold">
+              <AlertTriangle className="mr-2 h-4 w-4" />
+              สถานะข้อมูล: โหมดสำรอง (Degraded)
+            </h2>
+            <p className="mt-1 text-sm">ระบบยังแสดงผลได้ปกติ แต่บางชุดข้อมูลภายนอกยังไม่พร้อม</p>
             {!!data.errors?.length && (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
                 {data.errors.map((message, index) => (
@@ -153,7 +166,7 @@ export default function OpenDataDashboard() {
               </ul>
             )}
           </Card>
-        )}
+        ) : null}
 
         <Card className="rounded-2xl border-slate-200 p-5">
           <h2 className="text-lg font-semibold text-slate-900">แนวโน้มราคาสินค้าเกษตร</h2>
@@ -161,6 +174,7 @@ export default function OpenDataDashboard() {
             fetched: {new Date(data.agriculture.fetchedAt).toLocaleString("th-TH")} | records: {data.agriculture.rawCount} | cache: {data.agriculture.cached ? "HIT" : "MISS"}
           </p>
           <p className="text-xs text-slate-500">source: {data.agriculture.sourceUrl}</p>
+
           {data.agriculture.trend.length > 0 ? (
             <div className="mt-4 h-80">
               <Line
@@ -176,9 +190,10 @@ export default function OpenDataDashboard() {
             </div>
           ) : (
             <div className="mt-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-              ยังไม่มีข้อมูลแนวโน้มราคาให้แสดงในรอบนี้
+              ยังไม่มีข้อมูลแนวโน้มราคาสำหรับรอบนี้
             </div>
           )}
+
           <div className="mt-4">
             <h3 className="mb-2 text-sm font-semibold text-slate-700">ข้อมูลตัวอย่าง (Agriculture)</h3>
             <PreviewTable rows={data.agriculture.preview} />
@@ -200,20 +215,17 @@ export default function OpenDataDashboard() {
           <PreviewTable rows={data.weather.preview} />
         </Card>
 
-        {isDegraded && energyFallback && (
+        {isDegraded && energyFallback ? (
           <Card className="rounded-2xl border-slate-200 p-5">
-            <h3 className="text-base font-semibold text-slate-900">ข้อมูลสำรองจากกลุ่มพลังงาน (Energy)</h3>
+            <h3 className="text-base font-semibold text-slate-900">ข้อมูลสำรองจากกลุ่มพลังงาน</h3>
             <p className="mt-1 text-xs text-slate-500">
-              fetched: {new Date(energyFallback.fetchedAt).toLocaleString("th-TH")} | total: {energyFallback.total} | cache:{" "}
-              {energyFallback.cached ? "HIT" : "MISS"}
+              fetched: {new Date(energyFallback.fetchedAt).toLocaleString("th-TH")} | total: {energyFallback.total} | cache: {energyFallback.cached ? "HIT" : "MISS"}
             </p>
             <div className="mt-4 space-y-4">
               {energyFallback.datasets.map((dataset) => (
                 <div key={dataset.id} className="rounded-xl border border-slate-200 bg-white p-4">
                   <h4 className="text-sm font-semibold text-slate-900">{dataset.title}</h4>
-                  <p className="text-xs text-slate-500">
-                    org: {dataset.organization} | resources: {dataset.resourceCount}
-                  </p>
+                  <p className="text-xs text-slate-500">org: {dataset.organization} | resources: {dataset.resourceCount}</p>
                   <div className="mt-2">
                     <PreviewTable rows={dataset.sampleRows} />
                   </div>
@@ -221,7 +233,7 @@ export default function OpenDataDashboard() {
               ))}
             </div>
           </Card>
-        )}
+        ) : null}
       </div>
     </div>
   );
