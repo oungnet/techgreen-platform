@@ -5,27 +5,22 @@ import { drizzle } from "drizzle-orm/mysql2";
 import * as schema from "../drizzle/schema";
 import { ENV } from './_core/env';
 
-const DATABASE_URL = process.env.DATABASE_URL || ENV.databaseUrl || "";
-
-function maskDatabaseUrl(url: string) {
-  if (!url) return "(empty)";
-  try {
-    const parsed = new URL(url);
-    const username = parsed.username ? `${parsed.username}:***@` : "";
-    return `${parsed.protocol}//${username}${parsed.host}${parsed.pathname}`;
-  } catch {
-    return "(invalid-url)";
-  }
-}
-
-console.log("[Database] Config URL:", maskDatabaseUrl(DATABASE_URL));
+const DATABASE_URL = process.env.DATABASE_URL || ENV.databaseUrl || ""
 
 if (!DATABASE_URL) {
-  throw new Error("[Database] DATABASE_URL is missing.");
+  throw new Error("[Database] DATABASE_URL is missing.")
 }
 
-// Create connection pool
-const pool = mysql.createPool(DATABASE_URL);
+// ✅ ใช้อันนี้ตัวเดียวพอ
+const pool = mysql.createPool({
+  uri: DATABASE_URL,
+  connectionLimit: 10,
+
+  ssl: {
+    minVersion: "TLSv1.2",
+    rejectUnauthorized: true,
+  },
+})
 
 // Export db instance
 export const db = drizzle(pool, {
