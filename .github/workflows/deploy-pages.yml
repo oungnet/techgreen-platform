@@ -6,6 +6,17 @@ env:
 on:
   push:
     branches: ["main"]
+    paths:
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "scripts/smoke-test.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "vite.config.ts"
+      - "tsconfig.json"
+      - "tsconfig.node.json"
+      - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
 permissions:
