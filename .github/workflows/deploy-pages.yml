@@ -42,6 +42,20 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: pnpm exec vite build --base "$VITE_BASE_PATH"
 
+      - name: Create static route entrypoints (200 for deep links)
+        run: |
+          routes=(
+            learning
+            open-data
+            open-data/energy
+            open-data/catalog
+            components
+          )
+          for route in "${routes[@]}"; do
+            mkdir -p "dist/public/$route"
+            cp dist/public/index.html "dist/public/$route/index.html"
+          done
+
       - name: Create SPA fallback (404.html)
         run: cp dist/public/index.html dist/public/404.html
 
