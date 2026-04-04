@@ -115,21 +115,6 @@ importers:
       '@trpc/server':
         specifier: ^11.6.0
         version: 11.13.4(typescript@5.9.3)
-      '@types/express-session':
-        specifier: ^1.18.2
-        version: 1.18.2
-      '@types/passport':
-        specifier: ^1.0.17
-        version: 1.0.17
-      '@types/passport-facebook':
-        specifier: ^3.0.4
-        version: 3.0.4
-      '@types/passport-google-oauth20':
-        specifier: ^2.0.17
-        version: 2.0.17
-      '@types/passport-local':
-        specifier: ^1.0.38
-        version: 1.0.38
       axios:
         specifier: ^1.12.0
         version: 1.12.2
@@ -266,12 +251,27 @@ importers:
       '@types/express':
         specifier: 4.17.21
         version: 4.17.21
+      '@types/express-session':
+        specifier: ^1.18.2
+        version: 1.18.2
       '@types/google.maps':
         specifier: ^3.58.1
         version: 3.58.1
       '@types/node':
         specifier: ^24.7.0
         version: 24.7.0
+      '@types/passport':
+        specifier: ^1.0.17
+        version: 1.0.17
+      '@types/passport-facebook':
+        specifier: ^3.0.4
+        version: 3.0.4
+      '@types/passport-google-oauth20':
+        specifier: ^2.0.17
+        version: 2.0.17
+      '@types/passport-local':
+        specifier: ^1.0.38
+        version: 1.0.38
       '@types/react':
         specifier: ^19.2.1
         version: 19.2.1
