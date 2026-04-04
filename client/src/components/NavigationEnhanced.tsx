@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 
 type NavItem = {
   label: string;
@@ -211,11 +210,11 @@ export default function NavigationEnhanced() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <a href={getLoginUrl()}>
+                <Link href="/login">
                   <Button variant="outline" className="border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800 hover:text-white">
                     เข้าสู่ระบบ
                   </Button>
-                </a>
+                </Link>
                 <Link href="/register">
                   <Button className="bg-emerald-600 text-white hover:bg-emerald-700">สมัครสมาชิก</Button>
                 </Link>
