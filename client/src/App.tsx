@@ -38,6 +38,9 @@ import OpenDataDashboard from "./pages/OpenDataDashboard";
 import EnergyDataPage from "./pages/EnergyDataPage";
 import OpenDataCatalog from "./pages/OpenDataCatalog";
 import ComponentShowcase from "./pages/ComponentShowcase";
+import LoginMembership from "./pages/LoginMembership";
+import UserProfileMembership from "./pages/UserProfileMembership";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -53,11 +56,21 @@ function Router() {
       <Route path="/learning" component={Learning} />
       <Route path="/learning/:slug" component={ArticleDetail} />
       <Route path="/register" component={Register} />
-      <Route path="/login" component={Login} />
+      <Route path="/login" component={LoginMembership} />
+      <Route path="/login-legacy" component={Login} />
       <Route path="/apply-benefits" component={ApplyBenefits} />
       <Route path="/contact" component={Contact} />
-      <Route path="/dashboard-user" component={UserDashboard} />
-      <Route path="/profile" component={UserProfile} />
+      <Route path="/dashboard-user">
+        <ProtectedRoute>
+          <UserDashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/profile">
+        <ProtectedRoute>
+          <UserProfileMembership />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/profile-legacy" component={UserProfile} />
       <Route path="/email-preferences" component={EmailPreferences} />
       <Route path="/admin">
         <AdminRouteGuard>
