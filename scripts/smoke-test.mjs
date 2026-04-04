@@ -107,6 +107,20 @@ function writeReport() {
   console.log(`[smoke] Report written to ${outputPath}`);
 }
 
+async function isSpaFallbackResponse(response) {
+  if (response.status !== 404) return false;
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+  if (!contentType.includes("text/html")) return false;
+
+  const html = (await response.text()).toLowerCase();
+  const markers = [
+    "<div id=\"root\"></div>",
+    "techgreen platform 2026",
+    "/techgreen-platform/assets/index-",
+  ];
+  return markers.every((marker) => html.includes(marker));
+}
+
 async function assertFrontendRouteOk(url) {
   let lastError = null;
 
@@ -115,8 +129,8 @@ async function assertFrontendRouteOk(url) {
       const response = await request(url);
       const isOk = response.status === 200;
       // GitHub Pages project sites can return 404 for direct deep-link requests
-      // even when the SPA route works in browser navigation.
-      const isSpaFallback = response.status === 404;
+      // while still serving the SPA fallback HTML.
+      const isSpaFallback = await isSpaFallbackResponse(response);
 
       if (!isOk && !isSpaFallback) {
         throw new Error(`Request failed ${response.status} ${response.statusText}`);
@@ -159,6 +173,7 @@ async function main() {
     "",
     "/learning",
     "/open-data",
+    "/open-data/energy",
     "/open-data/catalog",
     "/components",
   ];
