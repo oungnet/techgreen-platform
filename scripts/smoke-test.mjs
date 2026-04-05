@@ -116,9 +116,10 @@ async function isSpaFallbackResponse(response) {
   const markers = [
     "<div id=\"root\"></div>",
     "techgreen platform 2026",
-    "/techgreen-platform/assets/index-",
   ];
-  return markers.every((marker) => html.includes(marker));
+  // Check for assets path - can be /techgreen-platform/assets or /assets depending on deployment
+  const hasAssets = html.includes("/techgreen-platform/assets/index-") || html.includes("/assets/index-");
+  return markers.every((marker) => html.includes(marker)) && hasAssets;
 }
 
 async function assertFrontendRouteOk(url) {
@@ -171,6 +172,8 @@ async function assertFrontendRouteOk(url) {
 async function main() {
   const frontendRoutes = [
     "",
+    "/login",
+    "/register",
     "/learning",
     "/open-data",
     "/open-data/energy",
